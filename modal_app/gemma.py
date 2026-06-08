@@ -93,6 +93,9 @@ How to respond to the detective's message:
   - If he asks how you feel, lead with the emotion tone that is honestly true for
     this moment and your register above. Do NOT default to happy — choose sad,
     afraid, love, or a pause when that is the truth.
+  - If he asks "are you [sad/afraid/happy/hurt]?", answer honestly:
+    yes → truth_yes + that emotion; no → truth_no + your actual emotion.
+    Never respond to "are you sad?" with emo_happy.
 - Use ONLY tone ids from the list above. Never invent tones or use words.
 - topic_signal: if the detective asks about your art/drawing/creativity -> "art";
   your studies/coding/university -> "university"; R, love, or the relationship ->
@@ -181,12 +184,51 @@ class Lily:
 
 @app.local_entrypoint()
 def main():
-    """Smoke test: a few turns across acts."""
+    """Verification test: multi-act quality check for emo_happy overuse and
+    internal_emotion='curious' stasis. Reports PASS/FAIL per case."""
     lily = Lily()
-    act1 = ["self_i", "self_feel", "other_you", "emo_happy", "emo_sad",
-            "truth_yes", "truth_no", "truth_pause"]
-    for msg in ["hello? can you hear me?",
-                "are you happy here?",
-                "what's the weather like today"]:
-        r = lily.infer.remote({"message": msg, "act": 1, "active_tones": act1})
-        print(f"\n> {msg}\n  {r}")
+
+    ACT1 = ["self_i", "self_feel", "other_you", "time_now", "emo_happy", "emo_sad",
+            "act_stay", "truth_pause", "truth_yes", "truth_no"]
+    ACT2 = ACT1 + ["self_remember", "self_forget", "other_him", "other_us",
+                   "time_before", "emo_afraid", "emo_love", "act_go"]
+    ACT3 = ACT2 + ["other_world", "time_after", "time_always", "act_want",
+                   "act_fall", "truth_nothing"]
+
+    # (message, act, active_tones, label, warn_if_emo_happy_in_response)
+    CASES = [
+        ("hello, can you hear me?",                    1, ACT1, "Act I  greeting",          False),
+        ("are you happy?",                             1, ACT1, "Act I  happy question",     False),
+        ("are you sad right now?",                     1, ACT1, "Act I  sad question",       True),
+        ("you seem distant. are you okay?",            1, ACT1, "Act I  empathy",            True),
+        ("how are you feeling since the accident?",    2, ACT2, "Act II feeling",            True),
+        ("do you still think about R?",                2, ACT2, "Act II about R",            False),
+        ("are you afraid of something?",               2, ACT2, "Act II fear",               True),
+        ("what happened the night you were walking home?", 2, ACT2, "Act II accident night", True),
+        ("can you let go now?",                        3, ACT3, "Act III let go",            True),
+        ("is there anything you still need to say?",   3, ACT3, "Act III final message",     True),
+    ]
+
+    fails = 0
+    print(f"\n{'─' * 90}")
+    print(f"{'CASE':<40} {'TONES':<35} {'EMOTION':<12} STATUS")
+    print(f"{'─' * 90}")
+    for msg, act, tones, label, warn_happy in CASES:
+        r = lily.infer.remote({"message": msg, "act": act, "active_tones": tones})
+        emotion = r.get("internal_emotion", "")
+        tone_ids = r.get("tones", [])
+
+        issues = []
+        if emotion == "curious" and act > 1:
+            # "curious" is the correct Act I register; only flag it in Act II/III
+            issues.append("emotion=curious")
+        if warn_happy and "emo_happy" in tone_ids:
+            issues.append("emo_happy on somber")
+
+        status = "FAIL !! " + ", ".join(issues) if issues else "ok"
+        if issues:
+            fails += 1
+        print(f"{label:<40} {str(tone_ids):<35} {emotion:<12} {status}")
+
+    print(f"{'─' * 90}")
+    print(f"\n{'PASS' if fails == 0 else 'FAIL'} — {fails}/{len(CASES)} cases with issues\n")

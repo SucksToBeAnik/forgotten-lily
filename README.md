@@ -12,7 +12,7 @@ is a developer map.
 ## Project layout
 ```
 app/        gr.Server backend + custom HTML/Tailwind/JS frontend
-  static/   index.html, tones/ (generated WAVs), notes/ (assets), audio/ (ambient)
+  static/   index.html, tones/ (generated WAVs), notes/ (assets)
 modal_app/  Modal serverless GPU inference (Gemma 4 E4B; Nemotron, MiniCPM later)
 tones/      Procedural tone synthesis (scipy/numpy) -> app/static/tones/*.wav
 notes/      Note source content + asset generation
@@ -23,13 +23,25 @@ todo.md     Implementation roadmap
 ```
 
 ## Build status
-See `todo.md`. Phase 0 (contracts + data) done; building tone synth + mock vertical slice.
+See `todo.md`. Phases 0–5 done: contracts/data, tone synth, mock vertical slice, live
+**Gemma 4 E4B** on Modal (the conversation), evidence/notes + empathy, lexicon drawer,
+and **Nemotron-Mini-4B** semantic guess-scoring (Phase 5.2). Next: input moderation
+(Phase 6), then the ending sequence (7.3).
+
+Two Modal apps, deployed separately (distinct app names — sharing one makes deploys
+clobber each other): `forgotten-lily` (Gemma, class `Lily`) and
+`forgotten-lily-nemotron` (Nemotron, class `Nemotron`).
 
 ## Local dev
 ```
 python tones/synth.py          # generate the 24 tone WAVs (app/static/tones/)
-python tones/ambient.py        # generate the ambient piano bed (app/static/audio/)
 USE_MOCK=1 python app.py       # run the game (Gradio-mounted) on mock inference, no GPU
+USE_MOCK=0 python app.py       # run on live Modal models (needs `modal token new`)
 # -> game UI at http://localhost:7860/   ·   Gradio engine at /engine
+
+# deploy / smoke the inference models:
+modal deploy modal_app/gemma.py       &&  modal run modal_app/gemma.py
+modal deploy modal_app/nemotron.py    &&  modal run modal_app/nemotron.py
 ```
-Generated audio is gitignored; run the two scripts after cloning.
+Generated tone audio is gitignored; run `tones/synth.py` after cloning. (Ambient music
+was removed by design — only the tones make sound; `tones/ambient.py` is now unused.)

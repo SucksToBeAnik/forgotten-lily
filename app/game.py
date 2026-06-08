@@ -26,6 +26,7 @@ def new_session():
         "turn": 0,
         "act": 1,
         "tones_seen_count": {},   # tone id -> times Lily has emitted it
+        "tone_contexts": {},      # tone id -> [player messages where it appeared, max 8]
         "lexicon": {},            # tone id -> {guess, confidence}
         "notes_unlocked": [],     # note ids, in unlock order
         "empathy": 0,             # rises when the detective asks caring/personal questions
@@ -171,8 +172,13 @@ def apply_turn(state, inference_response, message=""):
     if not tones:  # never break character; a safe in-character "drift"
         tones = [tid for tid in ("self_remember", "truth_pause") if tid in active] or [ACT1_TONES[0]]
 
+    tone_ctxs = state.setdefault("tone_contexts", {})
     for tid in tones:
         state["tones_seen_count"][tid] = state["tones_seen_count"].get(tid, 0) + 1
+        if message:
+            ctxs = tone_ctxs.setdefault(tid, [])
+            if len(ctxs) < 8:
+                ctxs.append(message[:280])
 
     topic = inference_response.get("topic_signal")
     if topic not in NOTES["topic_signals"]:

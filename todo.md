@@ -60,8 +60,14 @@ CUDA runtime image + `libgomp1`; do NOT compile from source, do NOT set chat_for
   model across Acts II/III (only smoke-tested; needs a real playthrough).
 - Tune empathy pacing (N15=2 … N14=5) and hint wording — enough nudge, no spoiler.
 
-**Recommended next feature:** Phase 5.2 (Nemotron lexicon scoring → replaces the
-token-overlap mock in `game.score_guess`; earns the NVIDIA prize). Then ending (7.3).
+**Recommended next feature:** Phase 6.1/6.2 (Nemotron `moderate` already deployed &
+smoke-passing — wire `/api/turn` to classify input → harmful plays `∅`, off-topic plays
+`◇ —`, diegetic journal lines). Then ending (7.3).
+
+**Nemotron note:** Phase 5.2 done this session. Lives in its own Modal app
+`forgotten-lily-nemotron` (class `Nemotron`, T4) with `score_guess` + `moderate`. Deploy
+with `.venv/bin/modal deploy modal_app/nemotron.py`; smoke `.venv/bin/modal run …`. Keep
+its app name distinct from Gemma's `forgotten-lily` or deploys clobber each other.
 
 ---
 
@@ -123,8 +129,17 @@ token-overlap mock in `game.score_guess`; earns the NVIDIA prize). Then ending (
 - [x] **5.1** Lexicon drawer (now a **left sidebar**): glyph, category tag, "heard N×",
   guess field + ↵/Enter save, color confidence bar, evidence `hint` line; locked tones as `?`.
   - DoD: drawer opens, guesses persist, conversation stays scrollable while open. ✓
-- [ ] **5.2** **Nemotron-Mini 4B** on Modal (T4) — semantic scoring of guess vs the tone's observed contexts → {red/amber/teal/green}.
-  - DoD: a correct guess trends green across turns; wrong stays red. **No numbers shown.**
+- [x] **5.2** **Nemotron-Mini 4B** on Modal (T4) — semantic scoring of a guess vs the
+  tone's **true meaning** (from `tones.json`, never shown) → {red/amber/teal/green}.
+  Server `/api/guess` routes here when `USE_MOCK=0`; mock token-overlap stays for offline.
+  - DoD: correct→green, wrong→red, synonyms→green (e.g. "myself"→self_i, "scared"→afraid);
+    color only, no numbers. ✓ smoke test PASS (0 unexpected) + live client-wrapper check.
+  - **Deploy gotcha (fixed):** Nemotron now lives in its OWN Modal app
+    `forgotten-lily-nemotron` — it previously shared `forgotten-lily` with Gemma, so each
+    `modal deploy` clobbered the other's class. Both apps now coexist; redeploy each from
+    its own file. Also: `apply_chat_template` needs `return_dict=True` + `generate(**inputs)`
+    on this transformers version (a bare tensor crashes). Scoring keys off the true meaning,
+    NOT the detective's questions (questions don't reveal a symbol's meaning → all-amber).
 - [x] **5.3** Retroactive chip updates: saving a guess updates all past chips (`refreshChips`),
   reveals the guess on hover, and marks decoded chips with a corner dot. ✓
   - (Confidence still from the token-overlap mock until 5.2 lands.)

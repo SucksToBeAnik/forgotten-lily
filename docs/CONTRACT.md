@@ -98,6 +98,38 @@ Reads as: *I / let go / remember — you / happy / him / not / the end* (PLAN 4.
 
 ---
 
+## Lexicon scoring (Nemotron, Phase 5.2)
+
+A second model — `nvidia/Nemotron-Mini-4B-Instruct`, deployed as its own Modal app
+`forgotten-lily-nemotron` (class `Nemotron`, T4) — silently rates the player's guess
+for a tone. It is the "silent semantic scorer" (PLAN §2); the player only ever sees a
+color, never a number.
+
+**Request** (`POST /api/guess` → `nemotron_inference.score_guess`):
+```json
+{ "tone_id": "self_i", "guess": "me, myself", "contexts": ["are you there?"] }
+```
+- `contexts` — the detective lines where this tone was heard (`state.tone_contexts`,
+  max 8). Passed for future use; **not** the basis of the judgment.
+
+**Response:** exactly one of `"green" | "teal" | "amber" | "red"`.
+
+**How it scores:** the guess is compared **by sense** against the tone's *true meaning*
+(from `data/tones.json`, never shown to the player) — synonyms and paraphrases count
+("myself" → `self_i` is green; "scared" → `emo_afraid` is green). This is the value
+over the offline token-overlap mock in `game.score_guess`, which misses synonyms.
+- `green` = same meaning · `teal` = near-synonym / same idea · `amber` = loosely
+  related but off · `red` = unrelated or contradictory · empty guess → `red`.
+
+Scoring is gated by `USE_MOCK`: `USE_MOCK=1` (default) uses the offline mock so the
+game runs with zero GPU cost; `USE_MOCK=0` routes guesses to Nemotron. A correct guess
+trends `green` across turns, a wrong one stays `red`.
+
+Nemotron also exposes `moderate(message) -> "normal"|"off_topic"|"harmful"` for the
+input-moderation path (Phase 6.1/6.2, not yet wired into `/api/turn`).
+
+---
+
 ## Robustness (impl note for Phase 3.5)
 Real Gemma output is repaired before it reaches the frontend:
 1. Parse JSON; on failure, extract first `{...}` block.

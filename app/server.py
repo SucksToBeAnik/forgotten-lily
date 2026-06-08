@@ -7,6 +7,7 @@ Run locally:
 On HuggingFace Spaces (Phase 9) a minimal gr.Blocks is mounted onto this app for
 Gradio-SDK eligibility; the player only ever sees the custom frontend.
 """
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -17,6 +18,8 @@ from pydantic import BaseModel
 from app import game
 from app.game import active_tone_ids
 from app.inference import infer
+
+USE_MOCK = os.environ.get("USE_MOCK", "1") != "0"
 
 ROOT = Path(__file__).resolve().parent
 STATIC = ROOT / "static"
@@ -102,6 +105,12 @@ def guess(body: GuessIn):
     result = game.set_guess(st, body.tone_id, body.guess)
     if result is None:
         raise HTTPException(400, "unknown tone")
+    if not USE_MOCK:
+        from app.nemotron_inference import score_guess as nemotron_score
+        contexts = st.get("tone_contexts", {}).get(body.tone_id, [])
+        conf = nemotron_score(body.tone_id, body.guess, contexts)
+        result["confidence"] = conf
+        st["lexicon"][body.tone_id]["confidence"] = conf
     return result
 
 
