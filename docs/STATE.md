@@ -60,7 +60,7 @@ the server may trigger the ending sequence (`special: "finale"`), set
 Re-evaluated every turn (`act >= note.act` always required):
 - **threshold notes** unlock when `lexicon_size >= unlock_value`.
 - **topic notes** unlock when the turn's `topic_signal == note.unlock_value`. Signals:
-  `art`, `university`, `relationship`, `hospital_staff`, `family`. The `family` signal
+  `music`, `university`, `relationship`, `hospital_staff`, `family`. The `family` signal
   also has a server-side keyword fallback (`FAMILY_CUES`) when the model misses it.
 - **empathy notes** unlock when `empathy >= unlock_value` — the vulnerable backstory
   (friend's statement, mother's voicemail, counseling slip, unsent letter), gated

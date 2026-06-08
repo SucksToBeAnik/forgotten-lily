@@ -45,9 +45,9 @@ The game ends when Lily speaks — once, in a real voice — one sentence she ne
 **University:** Second-year CS undergraduate, full scholarship
 **From:** A small coastal town. First in her family to go to university.
 
-Lily is the kind of person who fills every margin. Her CS assignments have tiny drawings in the corners. Her sketchbooks have snippets of code tucked between figure studies. She can't fully separate the two things she loves — she thinks of programs the way she thinks of compositions, as things with rhythm and weight.
+Lily is the kind of person who fills every margin. Her CS assignments have scraps of melody in the corners. Her manuscript books have snippets of code tucked between the staves. She can't fully separate the two things she loves — she thinks of programs the way she thinks of compositions, as things with rhythm and weight.
 
-She won an international student design award at 18 — a piece that combined generative code with hand-drawn illustration. The award email arrived the week she died. She never read it.
+She won an international student composition award at 18 — a piece that combined generative code with music she wrote by hand. The award email arrived the week she died. She never read it.
 
 She was in her second year when everything happened. She was also in the middle of a relationship that was falling apart — someone named R. Not a bad person. Just two people who wanted different things and didn't know how to say it. Their last real conversation was at 11:43pm, three days before the accident. It did not go well.
 
@@ -79,15 +79,15 @@ The player has no idea what the tones mean. That is the game.
 
 The detective is building a picture. Lily is responsive. Her tones feel warm — the player learns quickly that some tones feel positive, some feel like questions, some feel like reaching. She is clearly trying to communicate. She is clearly glad someone came.
 
-As the player asks questions — about her life, her interests, what she loves — notes begin appearing on the evidence board beside the conversation. A sketchbook scan. An award email. A screenshot of a text thread. The player pieces together who Lily is from these fragments while simultaneously trying to decode her language from context.
+As the player asks questions — about her life, her interests, what she loves — notes begin appearing on the evidence board beside the conversation. A page of sheet music. An award email. A screenshot of a text thread. The player pieces together who Lily is from these fragments while simultaneously trying to decode her language from context.
 
 **The emotional register of Act I:** Hope. Lily feels present, curious, almost playful. The detective is learning. Progress feels possible. The relationship between detective and Lily feels like it is building toward something.
 
 **What the player learns in Act I:**
-- Lily was a CS student and artist — brilliant, driven, warm
+- Lily was a CS student and musician — brilliant, driven, warm
 - She had a complicated relationship with someone named R
 - She won an international award she apparently doesn't know about
-- She loved her work, her sketchbooks, the feeling of making things
+- She loved her work, her manuscript books, the feeling of making things
 - She communicates in tones that have consistent patterns — learnable
 
 **Act I ends when** the player has seen all 8 active tones at least twice and has made at least 5 lexicon entries.
@@ -271,7 +271,7 @@ They appear on the evidence board one by one as the player progresses. Finding a
 
 **Threshold unlock:** The player has reached a certain number of decoded tones in their lexicon. Some notes appear automatically as the investigation deepens.
 
-**Conversation unlock:** When the player asks Lily about a relevant topic, Gemma detects the theme and signals the frontend to reveal the corresponding note. Asking about her art unlocks the sketchbook. Asking about R unlocks the text thread. The conversation and the evidence board inform each other.
+**Conversation unlock:** When the player asks Lily about a relevant topic, Gemma detects the theme and signals the frontend to reveal the corresponding note. Asking about her music unlocks the manuscript. Asking about R unlocks the text thread. The conversation and the evidence board inform each other.
 
 ### 7.3 Complete Note Inventory
 
@@ -279,21 +279,21 @@ They appear on the evidence board one by one as the player progresses. Finding a
 *Unlocks: 2 tones in lexicon (Act I)*
 A screenshot of the last real conversation between Lily and R. The player reads it first as a difficult breakup — R seems cold, Lily seems withdrawn. Later, knowing the full story, the thread reads as two people who cared about each other and ran out of words. Designed to be read twice.
 
-**N02 — Sketchbook scan: figure study, mouth left blank**
-*Unlocks: Player asks about art, drawing, or creativity (Act I)*
-A half-finished pencil drawing. The eyes are rendered with extraordinary care — precise, alive. The mouth is completely absent. Not erased. Just never drawn. When the player sees this in Act I it's a glimpse into Lily's talent. When they see it after the reveal, the blank mouth means something else entirely.
+**N02 — Manuscript: an unfinished song, final bar left blank**
+*Unlocks: Player asks about music, playing, or creativity (Act I)*
+A song in soft pencil on staff paper, almost complete. The melody is rendered with extraordinary care — phrasing, dynamics, the breath-marks where a voice would rise and fall. Then the final bar is completely absent. Not erased. Just never written. When the player sees this in Act I it's a glimpse into Lily's talent. When they see it after the reveal, the unwritten ending means something else entirely.
 
-**N03 — Award email: Design Symposium finalist notification**
+**N03 — Award email: Composition Prize finalist notification**
 *Unlocks: 6 tones in lexicon (Act I)*
 The email arrived the week she died. "We are thrilled to inform you..." She never read it. The timestamp is two days after the accident date — a detail the player may not notice until Act III.
 
 **N04 — CS assignment: margin notes in Lily's handwriting**
 *Unlocks: Player asks about university or coding (Act I)*
-A scan of a printed assignment, covered in her handwriting. Not corrections — thoughts. Tiny drawings in the margins. A note to herself: *"this function feels like a held breath."* Her personality in ink.
+A scan of a printed assignment, covered in her handwriting. Not corrections — thoughts. Scraps of melody in the margins. A note to herself: *"this function feels like a held breath."* Her personality in ink.
 
 **N05 — Photograph: Lily at her desk, laughing**
 *Unlocks: 10 tones in lexicon (Act II)*
-A candid photograph — someone else took it, she didn't know. She's at her desk in what appears to be her dorm room, laughing at something off-camera. The room is beautiful chaos. Pinned sketches. Open textbooks. Three half-empty mugs. This is the note that makes the player love her.
+A candid photograph — someone else took it, she didn't know. She's at her desk in what appears to be her dorm room, laughing at something off-camera. The room is beautiful chaos. Pinned sheets of staff paper. Open textbooks. Three half-empty mugs. This is the note that makes the player love her.
 
 **N06 — Second text thread: R and Lily, two days before**
 *Unlocks: Player asks about R, or about the relationship (Act II)*

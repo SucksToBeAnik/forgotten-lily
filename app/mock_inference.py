@@ -7,8 +7,9 @@ zero GPU cost. The real Modal/Gemma function (Phase 3) drops in behind the same
 # theme -> (topic_signal, ordered candidate tone ids). First match wins for the
 # topic; tones from all matched themes are pooled, then constrained to active.
 THEMES = [
-    (("draw", "sketch", "paint", "art", "drawing", "design", "make", "create", "creative"),
-     "art", ["self_i", "emo_love", "emo_happy", "self_feel"]),
+    (("music", "song", "sing", "play", "playing", "compose", "melody", "tune",
+      "instrument", "piano", "guitar", "write", "make", "create", "creative"),
+     "music", ["self_i", "emo_love", "emo_happy", "self_feel"]),
     (("code", "coding", "program", "cs", "computer", "university", "study", "class",
       "school", "assignment", "work"),
      "university", ["self_i", "emo_happy", "self_feel", "act_want"]),

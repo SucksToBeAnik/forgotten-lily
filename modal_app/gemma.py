@@ -18,7 +18,7 @@ APP_NAME = "forgotten-lily"
 MODEL_REPO = "ggml-org/gemma-4-E4B-it-GGUF"
 MODEL_FILE = "gemma-4-E4B-it-Q4_K_M.gguf"
 MODEL_DIR = "/models"
-SIGNALS = {"art", "university", "relationship", "hospital_staff", "family"}
+SIGNALS = {"music", "university", "relationship", "hospital_staff", "family"}
 
 app = modal.App(APP_NAME)
 volume = modal.Volume.from_name("forgotten-lily-models", create_if_missing=True)
@@ -63,8 +63,8 @@ ACT_TONES_GUIDE = {
 }
 
 CHARACTER = (
-    "You are Lily Anne, nineteen. A second-year CS student and an artist — you think "
-    "in code and in drawings and can't quite separate them. You were in an accident. "
+    "You are Lily Anne, nineteen. A second-year CS student and a musician — you think "
+    "in code and in music and can't quite separate them. You were in an accident. "
     "You can no longer speak in words; you answer only in tones, a small private "
     "language of feeling. You are speaking with a detective who is trying to "
     "understand you. There was someone, R — a relationship that was ending; you had "
@@ -107,7 +107,7 @@ How to respond to the detective's message:
   him, before"; "what happened?" → other_him + act_go + time_before.) Let your answer
   point OUTWARD to something, never just back at itself.
 - Use ONLY tone ids from the list above. Never invent tones or use words.
-- topic_signal: if the detective asks about your art/drawing/creativity -> "art";
+- topic_signal: if the detective asks about your music/playing/composing/songs -> "music";
   your studies/coding/university -> "university"; R, love, or the relationship ->
   "relationship"; who is here / nurses / staff / being alone -> "hospital_staff";
   your parents/family/home/childhood -> "family"; otherwise null.
@@ -116,7 +116,7 @@ How to respond to the detective's message:
   mood across turns; do NOT keep answering "curious".
 
 Output ONLY a JSON object, no other text:
-{{"tones": ["id", ...], "topic_signal": "art"|"university"|"relationship"|"hospital_staff"|null, "internal_emotion": "word"}}"""
+{{"tones": ["id", ...], "topic_signal": "music"|"university"|"relationship"|"hospital_staff"|null, "internal_emotion": "word"}}"""
 
 
 def _extract_json(text):

@@ -1,6 +1,6 @@
 {
   "_comment": "Evidence notes (PLAN 7.3, enriched). unlock_type: 'threshold' (lexicon_size >= unlock_value), 'topic' (topic_signal == unlock_value), or 'empathy' (state.empathy >= unlock_value; raised when the detective asks caring/personal questions). 'act' = earliest act the note can appear. 'found' = how it surfaced in the investigation (no spoilers). 'hint' = {tone_id, text} nudging a tone's meaning, surfaced in the lexicon once that tone is heard. 'summary' = the fragment this note contributes to the Her Story tab; 'order' sequences the assembled narrative. 'body' is the artifact text; 'design' is a render hint.",
-  "topic_signals": ["art", "university", "relationship", "hospital_staff", "family"],
+  "topic_signals": ["music", "university", "relationship", "hospital_staff", "family"],
   "notes": [
     {
       "id": "N01",
@@ -18,30 +18,30 @@
     },
     {
       "id": "N02",
-      "title": "Sketchbook — figure study",
+      "title": "Manuscript — unfinished song",
       "unlock_type": "topic",
-      "unlock_value": "art",
+      "unlock_value": "music",
       "act": 1,
-      "asset": "n02_sketchbook.png",
+      "asset": "n02_manuscript.png",
       "found": "Found open on her desk, the pencil still resting in the crease.",
-      "hint": { "tone_id": "truth_pause", "text": "She drew the eyes alive but never the mouth — as if speech itself were the thing missing." },
-      "summary": "She was an artist before anything else, rendering feeling with a care she rarely allowed herself in words.",
+      "hint": { "tone_id": "truth_pause", "text": "She wrote the whole song but never its final bar — as if the ending, the thing left to say, were what's missing." },
+      "summary": "She was a musician before anything else, shaping feeling into melody with a care she rarely allowed herself in words.",
       "order": 20,
-      "design": "Pencil figure study. Eyes rendered with extraordinary precision and life. The mouth is absent — not erased, never drawn.",
-      "body": "A half-finished figure study in soft pencil. The eyes are alive — every lash, the wet light caught in them, rendered with impossible care. The face trails into nothing below them. The mouth was never drawn. In the corner, faint: \"come back to this.\""
+      "design": "Pencil score on staff paper. The melody rendered with extraordinary care, dynamics and breath-marks set. The final bar is absent — not erased, never written.",
+      "body": "A song in soft pencil on staff paper, almost complete. The melody is alive — every phrase shaped with impossible care, the dynamics marked, the breath-marks set where a voice would rise and fall. Then the final stave is empty. The last bar was never written. In the corner, faint: \"come back to this.\""
     },
     {
       "id": "N03",
-      "title": "Award email — Design Symposium",
+      "title": "Award email — Composition Prize",
       "unlock_type": "threshold",
       "unlock_value": 6,
       "act": 1,
       "asset": "n03_award_email.png",
       "found": "Recovered from her inbox during the device review. Still marked unread.",
-      "summary": "Her work was named a finalist at an international symposium — an email that arrived too late for her to ever open.",
+      "summary": "Her composition was named a finalist at an international symposium — an email that arrived too late for her to ever open.",
       "order": 40,
       "design": "An email client screenshot. Subject highlighted. Status: UNREAD. Timestamp two days AFTER the accident date (callback in Act III).",
-      "body": "From: International Design Symposium <awards@idsymposium.org>\nSubject: Congratulations — you are a Finalist\nReceived: [two days after the incident]   ●  UNREAD\n\n\"We are thrilled to inform you that your submission, 'A Held Breath,' has been selected as a finalist in this year's Generative & Mixed-Media category...\"\n\nThe message was never opened."
+      "body": "From: International Sound + Code Symposium <awards@soundandcode.org>\nSubject: Congratulations — you are a Finalist\nReceived: [two days after the incident]   ●  UNREAD\n\n\"We are thrilled to inform you that your composition, 'A Held Breath,' has been selected as a finalist in this year's Generative Composition category...\"\n\nThe message was never opened."
     },
     {
       "id": "N04",
@@ -52,10 +52,10 @@
       "asset": "n04_assignment.png",
       "found": "Among the printouts in her bag, soft at the edges from being carried everywhere.",
       "hint": { "tone_id": "act_stay", "text": "She wrote about something that 'waits and waits' before it lets go — a holding, a staying in place." },
-      "summary": "She studied computer science but read it like poetry, finding a held breath and a release inside a recursive function.",
+      "summary": "She studied computer science but heard it like music, finding a held breath and a release inside a recursive function.",
       "order": 30,
-      "design": "Scan of a printed CS assignment, dense with handwritten margin notes and tiny drawings. Warm, alive, personal.",
-      "body": "Printed lab sheet: 'Assignment 4 — Recursive Structures.' The margins are full. Tiny drawings — a fern, a staircase, a wave. Beside one function, in careful handwriting:\n\n\"this function feels like a held breath. it waits and waits and then all at once it lets everything go. i think that's beautiful. (will prof think i'm insane if i write that in the report) (writing it anyway)\""
+      "design": "Scan of a printed CS assignment, dense with handwritten margin notes and scraps of melody in quick notation. Warm, alive, personal.",
+      "body": "Printed lab sheet: 'Assignment 4 — Recursive Structures.' The margins are full. Scraps of melody in quick notation — a rising figure, a falling one, three notes circled and starred. Beside one function, in careful handwriting:\n\n\"this function feels like a held breath. it waits and waits and then all at once it lets everything go. i think that's beautiful. (will prof think i'm insane if i write that in the report) (writing it anyway)\""
     },
     {
       "id": "N05",
@@ -69,7 +69,7 @@
       "summary": "To the people around her she was vivid and ordinarily alive — beautiful chaos at a crowded desk.",
       "order": 10,
       "design": "Candid photo, someone else's camera. Lily laughing at her desk, beautiful chaos around her. The note that makes the player love her.",
-      "body": "A candid photo — she didn't know it was being taken. Lily at her desk mid-laugh, head tipped back, hand half-raised as if to wave the camera off. Around her: pinned sketches curling at the corners, three open textbooks, three half-empty mugs, a tangle of cables, a single dried flower taped to the monitor. The room is beautiful chaos. She looks completely, ordinarily alive."
+      "body": "A candid photo — she didn't know it was being taken. Lily at her desk mid-laugh, head tipped back, hand half-raised as if to wave the camera off. Around her: pinned sheets of staff paper curling at the corners, three open textbooks, three half-empty mugs, a tangle of cables and headphones, a single dried flower taped to the monitor. The room is beautiful chaos. She looks completely, ordinarily alive."
     },
     {
       "id": "N06",
@@ -118,7 +118,7 @@
       "unlock_value": 18,
       "act": 3,
       "asset": "n09_journal.png",
-      "found": "A torn page, recovered folded inside the back cover of her sketchbook.",
+      "found": "A torn page, recovered folded inside the back cover of her manuscript book.",
       "hint": { "tone_id": "truth_no", "text": "'it isn't you. it was never you.' — she circles one small, firm word." },
       "summary": "On a torn page she rehearsed what she meant to tell R that night: that it was never his fault, and she should have said it weeks ago.",
       "order": 120,
@@ -188,12 +188,12 @@
       "unlock_value": 5,
       "act": 3,
       "asset": "n14_letter_unsent.png",
-      "found": "Tucked into the lining of her sketchbook — unaddressed, the envelope never sealed.",
+      "found": "Tucked into the lining of her manuscript book — unaddressed, the envelope never sealed.",
       "hint": { "tone_id": "self_remember", "text": "She was trying to hold onto something she meant to finally say — a keeping, a remembering." },
       "summary": "She was afraid of ending things the way her parents had — in silence and blame — and that fear shaped how she loved R, and how she kept leaving before she could be left.",
       "order": 60,
       "design": "A handwritten letter, never sent, the hand careful and then hurried. To her mother.",
-      "body": "(unsent, tucked into the sketchbook lining)\n\n\"Mum — I'm sorry I go quiet. I think I learned it from the house. When things got hard, you and dad just went somewhere I couldn't follow, and I taught myself to do the same so it wouldn't hurt as much.\n\nI don't want to end things the way you two did. Not with R, not with you. I keep pulling away from everyone so I can be the one who leaves first. I know that isn't brave. I want to stop.\n\nI'm going to call you. I'm going to tell R the truth, kindly, this time. I just need to be ready. I'll write it all down first so I get it right.\""
+      "body": "(unsent, tucked into the manuscript book lining)\n\n\"Mum — I'm sorry I go quiet. I think I learned it from the house. When things got hard, you and dad just went somewhere I couldn't follow, and I taught myself to do the same so it wouldn't hurt as much.\n\nI don't want to end things the way you two did. Not with R, not with you. I keep pulling away from everyone so I can be the one who leaves first. I know that isn't brave. I want to stop.\n\nI'm going to call you. I'm going to tell R the truth, kindly, this time. I just need to be ready. I'll write it all down first so I get it right.\""
     },
     {
       "id": "N10",
