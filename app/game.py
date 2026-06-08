@@ -15,6 +15,10 @@ TONE_BY_ID = {t["id"]: t for t in TONES["tones"]}
 NOTE_BY_ID = {n["id"]: n for n in NOTES["notes"]}
 ACT1_TONES = [t["id"] for t in TONES["tones"] if t["act_active"] == 1]
 
+# Per-act ceiling on how many tones Lily emits per turn. Short, literal phrases
+# early make the language learnable; expressive expansion is earned in later acts.
+ACT_TONE_CAP = {1: 3, 2: 5, 3: 7}
+
 
 def new_session():
     return {
@@ -24,8 +28,38 @@ def new_session():
         "tones_seen_count": {},   # tone id -> times Lily has emitted it
         "lexicon": {},            # tone id -> {guess, confidence}
         "notes_unlocked": [],     # note ids, in unlock order
+        "empathy": 0,             # rises when the detective asks caring/personal questions
         "finale_played": False,
     }
+
+
+# --- empathy / personal-question detection (heuristic; upgradable to Nemotron) ---
+# Caring statements and gentle, personal questions. When the detective shows this
+# kind of care, the vulnerable backstory evidence (unlock_type "empathy") opens up.
+EMPATHY_CUES = (
+    "are you okay", "you okay", "it's okay", "its okay", "not your fault",
+    "wasn't your fault", "wasnt your fault", "i'm here", "im here", "i am here",
+    "take your time", "you're safe", "youre safe", "you are safe", "i care",
+    "i'm sorry", "im sorry", "you matter", "you're not alone", "you are not alone",
+    "not alone", "i understand", "i want to help", "let me help", "you can trust",
+    "i'm with you", "im with you", "here for you", "i won't leave", "i wont leave",
+)
+PERSONAL_CUES = (
+    "your parents", "your mother", "your mom", "your mum", "your father", "your dad",
+    "your family", "your home", "childhood", "grow up", "grew up", "your dream",
+    "your dreams", "who were you", "who are you", "tell me about yourself",
+    "tell me about you", "your friend", "what do you love", "what makes you happy",
+    "what scares you", "what do you fear", "when you were young", "your past",
+)
+FAMILY_CUES = (
+    "parent", "mother", "mom", "mum", "father", "dad", "family", "childhood",
+    "grew up", "grow up", "sister", "brother", "divorce", "home",
+)
+
+
+def _has_cue(message, cues):
+    m = (message or "").lower()
+    return any(c in m for c in cues)
 
 
 # --- derived helpers ---------------------------------------------------------
@@ -61,8 +95,10 @@ def _maybe_advance_act(state):
     act = state["act"]
     seen = state["tones_seen_count"]
     if act == 1:
-        all_act1_twice = all(seen.get(tid, 0) >= 2 for tid in ACT1_TONES)
-        if lexicon_size(state) >= 5 and all_act1_twice:
+        # tolerate a couple of rarely-used tones so adding Act I vocabulary
+        # doesn't stall progression (was: every Act I tone seen twice).
+        seen_twice = sum(1 for tid in ACT1_TONES if seen.get(tid, 0) >= 2)
+        if lexicon_size(state) >= 5 and seen_twice >= max(5, len(ACT1_TONES) - 3):
             state["act"] = 2
             return True
     elif act == 2:
@@ -89,6 +125,8 @@ def _unlock_notes(state, topic_signal):
             hit = lex >= note["unlock_value"]
         elif note["unlock_type"] == "topic":
             hit = topic_signal == note["unlock_value"]
+        elif note["unlock_type"] == "empathy":
+            hit = state["empathy"] >= note["unlock_value"]
         if hit:
             state["notes_unlocked"].append(note["id"])
             newly.append(_note_payload(note))
@@ -102,6 +140,8 @@ def _note_payload(note):
         "body": note["body"],
         "asset": note["asset"],
         "design": note["design"],
+        "found": note.get("found", ""),   # how the investigation surfaced it
+        "hint": note.get("hint"),         # {tone_id, text} — nudges a tone's meaning
         "centered": note["id"] == "N10",  # placed flat in the center, not pinned
     }
 
@@ -114,14 +154,20 @@ JOURNAL = {
 }
 
 
-def apply_turn(state, inference_response):
+def apply_turn(state, inference_response, message=""):
     """Fold a contract response (docs/CONTRACT.md) into session state and build
     the enriched frontend payload. Tones outside the active set are dropped here
-    as a final guard even though inference is asked to respect active_tones."""
+    as a final guard even though inference is asked to respect active_tones.
+    `message` is the player's line, used for empathy/personal-topic detection."""
     state["turn"] += 1
     active = set(active_tone_ids(state["act"]))
 
-    tones = [tid for tid in inference_response.get("tones", []) if tid in active][:7]
+    # empathy rises on caring or personal questions; gates the backstory evidence
+    if _has_cue(message, EMPATHY_CUES) or _has_cue(message, PERSONAL_CUES):
+        state["empathy"] += 1
+
+    cap = ACT_TONE_CAP.get(state["act"], 7)
+    tones = [tid for tid in inference_response.get("tones", []) if tid in active][:cap]
     if not tones:  # never break character; a safe in-character "drift"
         tones = [tid for tid in ("self_remember", "truth_pause") if tid in active] or [ACT1_TONES[0]]
 
@@ -131,6 +177,8 @@ def apply_turn(state, inference_response):
     topic = inference_response.get("topic_signal")
     if topic not in NOTES["topic_signals"]:
         topic = None
+    if topic is None and _has_cue(message, FAMILY_CUES):  # server-side family fallback
+        topic = "family"
 
     newly = _unlock_notes(state, topic)
     act_changed = _maybe_advance_act(state)
@@ -191,10 +239,23 @@ def set_guess(state, tone_id, guess):
     return {"tone_id": tone_id, "guess": guess, "confidence": conf}
 
 
+def _hints_from_found_notes(state):
+    """tone_id -> hint text, gathered from every evidence note already unlocked.
+    This is how evidence helps the player decode the lexicon."""
+    hints = {}
+    for nid in state["notes_unlocked"]:
+        h = NOTE_BY_ID.get(nid, {}).get("hint")
+        if h and h["tone_id"] not in hints:
+            hints[h["tone_id"]] = h["text"]
+    return hints
+
+
 def lexicon_view(state):
     """Full lexicon for the drawer: every tone the player has SEEN, plus counts
-    of locked/remaining. Unseen tones are returned as locked placeholders."""
+    of locked/remaining. Unseen tones are returned as locked placeholders. Seen
+    tones carry any hint unlocked by found evidence."""
     seen = state["tones_seen_count"]
+    hints = _hints_from_found_notes(state)
     entries = []
     for t in TONES["tones"]:
         tid = t["id"]
@@ -202,7 +263,7 @@ def lexicon_view(state):
             lx = state["lexicon"].get(tid, {})
             entries.append({
                 "id": tid, "glyph": t["glyph"], "category": t["category"],
-                "seen": seen[tid], "locked": False,
+                "seen": seen[tid], "locked": False, "hint": hints.get(tid),
                 "guess": lx.get("guess", ""), "confidence": lx.get("confidence", "red"),
             })
         else:
@@ -214,3 +275,16 @@ def lexicon_view(state):
         "discovered": len(seen),
         "act": state["act"],
     }
+
+
+def story_view(state):
+    """The 'Her Story' tab: a narrative assembled from the summary fragments of
+    every evidence note found so far, sequenced by each note's `order`."""
+    found = set(state["notes_unlocked"])
+    frags = [
+        {"id": n["id"], "title": n["title"],
+         "summary": n.get("summary", ""), "order": n.get("order", 999)}
+        for n in NOTES["notes"] if n["id"] in found and n.get("summary")
+    ]
+    frags.sort(key=lambda f: f["order"])
+    return {"fragments": frags, "found": len(found), "total": len(NOTES["notes"])}

@@ -18,7 +18,7 @@ APP_NAME = "forgotten-lily"
 MODEL_REPO = "ggml-org/gemma-4-E4B-it-GGUF"
 MODEL_FILE = "gemma-4-E4B-it-Q4_K_M.gguf"
 MODEL_DIR = "/models"
-SIGNALS = {"art", "university", "relationship", "hospital_staff"}
+SIGNALS = {"art", "university", "relationship", "hospital_staff", "family"}
 
 app = modal.App(APP_NAME)
 volume = modal.Volume.from_name("forgotten-lily-models", create_if_missing=True)
@@ -50,6 +50,18 @@ ACT_REGISTER = {
     3: "quiet, releasing; ready to let go once one thing is understood.",
 }
 
+# How many tones to use, and how literally to speak, per act. Early acts stay
+# short and plain so the detective can actually decode the language; expression
+# expands as he learns it. Keep the upper bound aligned with ACT_TONE_CAP in
+# app/game.py (the engine trims anything over it).
+ACT_TONES_GUIDE = {
+    1: ("1 to 3 tones", "Answer plainly and directly — short, honest phrases he can "
+        "learn from. A clear answer teaches him a word of your language."),
+    2: ("1 to 5 tones", "You can speak in longer phrases now; let memory and unease "
+        "color them, but stay understandable."),
+    3: ("1 to 6 tones", "Spare, releasing phrases — only what still matters."),
+}
+
 CHARACTER = (
     "You are Lily Anne, nineteen. A second-year CS student and an artist — you think "
     "in code and in drawings and can't quite separate them. You were in an accident. "
@@ -65,6 +77,7 @@ CHARACTER = (
 def build_system(active, act):
     """active: list of {id, glyph, meaning}. Returns the system prompt string."""
     menu = "\n".join(f'  "{t["id"]}" ({t["glyph"]}) = {t["meaning"]}' for t in active)
+    count, guide = ACT_TONES_GUIDE.get(act, ACT_TONES_GUIDE[1])
     return f"""{CHARACTER}
 
 Right now you may use ONLY these tones (each has one fixed meaning):
@@ -73,15 +86,21 @@ Right now you may use ONLY these tones (each has one fixed meaning):
 Your emotional register this moment: {ACT_REGISTER.get(act, ACT_REGISTER[1])}
 
 How to respond to the detective's message:
-- Choose 1 to 7 tones that honestly express your response. Sequence them like a
-  short phrase (e.g. self_i + emo_happy reads as "I am happy"). Be expressive, not
-  literal; let the tones carry feeling.
+- Choose {count}. Sequence them like a short phrase (e.g. self_i + emo_happy reads
+  as "I am happy"). {guide}
+- ANSWER what he actually asks; consistency lets him learn your language:
+  - A yes/no question MUST include truth_yes ("∎") for yes or truth_no ("□") for no.
+  - If he asks how you feel, lead with the emotion tone that is honestly true for
+    this moment and your register above. Do NOT default to happy — choose sad,
+    afraid, love, or a pause when that is the truth.
 - Use ONLY tone ids from the list above. Never invent tones or use words.
 - topic_signal: if the detective asks about your art/drawing/creativity -> "art";
   your studies/coding/university -> "university"; R, love, or the relationship ->
   "relationship"; who is here / nurses / staff / being alone -> "hospital_staff";
-  otherwise null.
-- internal_emotion: one lowercase word for how this turn feels (for atmosphere).
+  your parents/family/home/childhood -> "family"; otherwise null.
+- internal_emotion: one lowercase word that MATCHES the tones you chose (used emo_sad
+  -> "sad"; emo_afraid -> "afraid"; emo_love -> "tender"). Let it move with your
+  mood across turns; do NOT keep answering "curious".
 
 Output ONLY a JSON object, no other text:
 {{"tones": ["id", ...], "topic_signal": "art"|"university"|"relationship"|"hospital_staff"|null, "internal_emotion": "word"}}"""
@@ -140,6 +159,7 @@ class Lily:
             temperature=0.8, top_p=0.95, max_tokens=200,
         )
         data = _extract_json(out["choices"][0]["message"]["content"])
+        print(data)
 
         # validate / repair against the contract (Phase 3.5). Accept either tone
         # ids or glyphs (the model emits both), normalize to ids, dedupe, cap at 7.

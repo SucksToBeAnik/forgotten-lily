@@ -57,8 +57,23 @@
   .chip[data-conf="green"] { border-color:#5fae7e; }
   .chip[data-conf="teal"]  { border-color:#4f9a9a; }
   .chip[data-conf="amber"] { border-color:#c79a4e; }
-  .tip:empty { display:none; }                 /* no guess -> no tooltip (PLAN: discovery) */
   .chip:hover .tip { opacity:1; }
+  /* (1) discovery: a tone heard for the very first time flashes and wears a NEW tag */
+  @keyframes discover { 0%{box-shadow:0 0 0 0 var(--glow);} 25%{box-shadow:0 0 22px 5px var(--glow);} 100%{box-shadow:0 0 0 0 transparent;} }
+  .chip.is-new { animation:discover 1.8s ease-out 1; }
+  .chip.is-new::before { content:'NEW'; position:absolute; top:-9px; right:-8px; font-size:7px;
+    letter-spacing:.08em; background:var(--accent); color:#1a120b; padding:1px 3px; border-radius:3px; z-index:1; }
+  /* (3) a tone the player has recorded a meaning for: accent corner dot + faint ring */
+  .chip.guessed { box-shadow:inset 0 0 0 1px var(--warm); }
+  .chip.guessed::after { content:''; position:absolute; top:3px; right:3px; width:6px; height:6px;
+    border-radius:50%; background:var(--warm); box-shadow:0 0 5px var(--glow); }
+  /* thinking indicator while she gathers a response */
+  @keyframes dotpulse { 0%,80%,100%{opacity:.25; transform:translateY(0);} 40%{opacity:1; transform:translateY(-3px);} }
+  .thinking .dot { animation:dotpulse 1.2s infinite ease-in-out; }
+  .thinking .dot:nth-child(2){ animation-delay:.18s; }
+  .thinking .dot:nth-child(3){ animation-delay:.36s; }
+  @keyframes noteglow { 0%{box-shadow:0 0 0 0 var(--glow);} 35%{box-shadow:0 0 26px 7px var(--glow);} 100%{box-shadow:0 10px 24px rgba(0,0,0,.45);} }
+  .note.just-pinned { animation:pin .6s cubic-bezier(.2,1.3,.4,1) both, noteglow 2.4s ease-out .1s both; }
   .bar[data-c="red"]   { background:linear-gradient(90deg,#7a2f24 30%,#3a3a3a 30%); }
   .bar[data-c="amber"] { background:linear-gradient(90deg,#c79a4e 55%,#3a3a3a 55%); }
   .bar[data-c="teal"]  { background:linear-gradient(90deg,#4f9a9a 80%,#3a3a3a 80%); }
@@ -67,8 +82,8 @@
 </style>
 </head>
 <body data-act="1" class="h-screen overflow-hidden font-mono text-paper transition-colors duration-[2500ms]">
-  <!-- Intro / threshold modal: gives context and provides the first gesture so the
-       ambient bed can begin (browsers block autoplay until the user interacts). -->
+  <!-- Intro / threshold modal: gives context; dismissed by BEGIN, after which the
+       same briefing stays pinned to the evidence board. -->
   <div id="intro" class="fixed inset-0 z-50 flex items-center justify-center bg-bg/95 backdrop-blur-sm transition-opacity duration-700">
     <div class="max-w-[560px] text-center px-8">
       <div class="font-mono text-warm tracking-[.3em] text-[11px] mb-7">CASE LA-0419 · SUBJECT: LILY ANNE</div>
@@ -93,10 +108,19 @@
   </header>
 
   <div class="grid grid-cols-[minmax(280px,1fr)_1.6fr]" style="height:calc(100% - 67px)">
-    <!-- Evidence board -->
-    <section class="p-[22px] overflow-y-auto border-r border-white/[.06]">
-      <h2 class="text-[11px] tracking-[.22em] text-muted mb-[18px]">EVIDENCE BOARD</h2>
-      <div id="notes"><div class="empty font-serif text-base italic text-muted opacity-60">Nothing has surfaced yet.</div></div>
+    <!-- Evidence board / Her Story (tabbed) -->
+    <section class="flex flex-col overflow-hidden border-r border-white/[.06]">
+      <div class="flex gap-1 px-[22px] pt-[18px] border-b border-white/[.06]">
+        <button id="tabEvidence" class="tab text-[11px] tracking-[.18em] px-3 py-2 border-b-2 border-accent text-paper">EVIDENCE</button>
+        <button id="tabStory" class="tab text-[11px] tracking-[.18em] px-3 py-2 border-b-2 border-transparent text-muted transition hover:text-paper">HER STORY <span id="storyCount" class="opacity-60"></span></button>
+      </div>
+      <div id="paneEvidence" class="flex-1 overflow-y-auto p-[22px]">
+        <div id="notes"><div class="empty font-serif text-base italic text-muted opacity-60">Nothing has surfaced yet.</div></div>
+      </div>
+      <div id="paneStory" class="hidden flex-1 overflow-y-auto p-[22px]">
+        <div class="text-[11px] tracking-[.15em] text-muted mb-4">WHAT THE EVIDENCE TELLS YOU</div>
+        <div id="story"><div class="font-serif text-base italic text-muted opacity-60">Her story is still blank. Find evidence to begin writing it.</div></div>
+      </div>
     </section>
 
     <!-- Conversation -->
@@ -117,11 +141,11 @@
   </div>
 
   <!-- Lexicon drawer -->
-  <div id="drawer" class="fixed left-0 right-0 bottom-0 h-[62vh] bg-bg2 border-t border-chipedge translate-y-full transition-transform duration-500 ease-[cubic-bezier(.3,1,.4,1)] px-[30px] py-[22px] overflow-y-auto z-20 shadow-[0_-20px_40px_rgba(0,0,0,.5)]">
+  <div id="drawer" class="fixed left-0 top-0 bottom-0 w-[400px] max-w-[85vw] bg-bg2 border-r border-chipedge -translate-x-full transition-transform duration-500 ease-[cubic-bezier(.3,1,.4,1)] px-[26px] py-[22px] overflow-y-auto z-30 shadow-[20px_0_50px_rgba(0,0,0,.55)]">
     <span id="lexClose" class="absolute top-[18px] right-6 cursor-pointer text-muted">close ✕</span>
     <h2 class="text-xs tracking-[.22em] text-muted mb-1">LEXICON</h2>
     <div class="text-[11px] text-muted mb-[18px]">What you believe each tone means. The bar is her — not a score.</div>
-    <div id="lexGrid" class="grid gap-3.5" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))"></div>
+    <div id="lexGrid" class="grid gap-3" style="grid-template-columns:1fr"></div>
   </div>
 
 <script>
@@ -130,30 +154,54 @@ const ROMAN = {1:'I',2:'II',3:'III'};
 let session = null, busy = false;
 const guesses = {};   // tone_id -> {guess, confidence}, the player's own decoding
 
-// --- ambient bed: always playing, ducks to silence only while she speaks (PLAN 6.5)
-const AMBIENT_VOL = 0.16;
-let audioCtx, ambientGain, ambientEl, ambientStarted = false;
-function startAmbient() {
-  if (ambientStarted) return; ambientStarted = true;
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  ambientEl = new Audio('/static/audio/ambient.wav');
-  ambientEl.loop = true;
-  const src = audioCtx.createMediaElementSource(ambientEl);
-  ambientGain = audioCtx.createGain();
-  ambientGain.gain.value = AMBIENT_VOL;
-  src.connect(ambientGain).connect(audioCtx.destination);
-  ambientEl.play().catch(() => { ambientStarted = false; });
+// Tone categories (data/tones.json). Shown as a fair scaffold: the player learns
+// the *kind* of a glyph (Self/Emotion/Truth…) for free, and decodes the exact
+// meaning themselves. Narrows a 24-way guess to ~4-way without giving the answer.
+const CATS = {
+  A: { label: 'Self',    color: '#d8a36b' },
+  B: { label: 'Other',   color: '#6f9fb0' },
+  C: { label: 'Time',    color: '#a98fc0' },
+  D: { label: 'Emotion', color: '#cf7b86' },
+  E: { label: 'Action',  color: '#7fae7f' },
+  F: { label: 'Truth',   color: '#b8b09c' },
+};
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const seenTones = new Set();   // tone ids the player has encountered this session (for "NEW")
+
+// Transient discovery banner, top-center; stacks if several land at once.
+function showToast(html) {
+  const offset = 16 + document.querySelectorAll('.toast').length * 46;
+  const t = document.createElement('div');
+  t.className = 'toast fixed left-1/2 -translate-x-1/2 z-40 bg-bg2/95 border border-accent/60 text-paper text-[12px] tracking-[.06em] px-4 py-2 rounded-md shadow-[0_8px_24px_rgba(0,0,0,.5)] backdrop-blur-sm transition-all duration-500 opacity-0 -translate-y-2';
+  t.style.top = offset + 'px';
+  t.innerHTML = html;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.classList.remove('opacity-0', '-translate-y-2'));
+  setTimeout(() => { t.classList.add('opacity-0', '-translate-y-2'); setTimeout(() => t.remove(), 600); }, 2800);
 }
-function fadeAmbient(to, secs) {
-  if (!ambientGain) return;
-  const now = audioCtx.currentTime, g = ambientGain.gain;
-  g.cancelScheduledValues(now); g.setValueAtTime(g.value, now);
-  g.linearRampToValueAtTime(to, now + secs);
+
+// Map an evidence artifact to an icon by its asset filename (data/notes.json).
+function noteIcon(asset) {
+  const a = (asset || '').toLowerCase();
+  if (a.includes('text_thread')) return '💬';
+  if (a.includes('sketch'))      return '🎨';
+  if (a.includes('voicemail'))   return '📞';
+  if (a.includes('counseling'))  return '🩺';
+  if (a.includes('letter'))      return '💌';
+  if (a.includes('statement'))   return '🗣️';
+  if (a.includes('childhood') || a.includes('folder') || a.includes('family')) return '👪';
+  if (a.includes('email'))       return '✉️';
+  if (a.includes('assignment'))  return '📝';
+  if (a.includes('photo'))       return '📷';
+  if (a.includes('intake') || a.includes('form')) return '🏥';
+  if (a.includes('log'))         return '📋';
+  if (a.includes('journal'))     return '📓';
+  if (a.includes('police') || a.includes('report')) return '🗂️';
+  return '📄';
 }
-const duck = () => fadeAmbient(0.0, 0.4);          // world goes quiet for her
-const unduck = () => fadeAmbient(AMBIENT_VOL, 1.2); // ...then breathes back in
-// browsers block autoplay until a gesture; start the bed on first interaction
-['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, startAmbient, { once: true }));
+
+// Ambient background music removed per design — only the tones make sound now.
 
 async function api(path, opts) {
   const r = await fetch(path, opts);
@@ -171,10 +219,9 @@ function setAct(act) { document.body.dataset.act = act; $('#actNum').textContent
 // --- sequential tone playback (the world goes quiet for her; PLAN 6.5) -------
 function playTones(chipEls) {
   return new Promise(resolve => {
-    duck();                       // mute the ambient bed while she speaks
     let i = 0;
     const step = () => {
-      if (i >= chipEls.length) { unduck(); return resolve(); }
+      if (i >= chipEls.length) { return resolve(); }
       const el = chipEls[i];
       el.classList.add('opacity-100', 'scale-100', 'playing');
       el.classList.remove('opacity-[.35]', 'scale-[.8]');
@@ -188,21 +235,39 @@ function playTones(chipEls) {
 
 const CHIP_CLS = "chip relative inline-flex items-center justify-center w-10 h-10 text-xl rounded-md bg-chip border border-chipedge text-paper transition-all duration-300 opacity-[.35] scale-[.8]";
 
-function makeChip(t) {
+function makeChip(t, isNew) {
   const c = document.createElement('span');
   c.className = CHIP_CLS;
   c.textContent = t.glyph;
-  c.dataset.audio = t.audio; c.dataset.toneId = t.id;
+  c.dataset.audio = t.audio; c.dataset.toneId = t.id; c.dataset.cat = t.category;
+  const cat = CATS[t.category] || { label: '?', color: '#888' };
+  // persistent category cue: a small colored dot under the glyph
+  const dot = document.createElement('span');
+  dot.className = "absolute bottom-[3px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full";
+  dot.style.background = cat.color;
+  c.appendChild(dot);
   const tip = document.createElement('span');
-  tip.className = "tip absolute bottom-[120%] left-1/2 -translate-x-1/2 bg-[#0c0a08] border border-chipedge text-paper text-[10px] whitespace-nowrap px-2 py-1 rounded opacity-0 pointer-events-none transition-opacity duration-200";
+  // left-anchored (not centered) so the leftmost chip's tip never spills past the
+  // panel edge, which the scrolling log would clip.
+  tip.className = "tip absolute bottom-[120%] left-0 bg-[#0c0a08] border border-chipedge text-left whitespace-nowrap px-2 py-1 rounded opacity-0 pointer-events-none transition-opacity duration-200";
   c.appendChild(tip);
-  applyGuessToChip(c);          // show the player's guess only if they've made one
+  if (isNew) {                  // (1) first time this tone has surfaced — flash + NEW tag
+    c.classList.add('is-new');
+    setTimeout(() => c.classList.remove('is-new'), 4500);
+  }
+  applyGuessToChip(c);          // category always; the player's guess once made
   return c;
 }
 
 function applyGuessToChip(c) {
   const g = guesses[c.dataset.toneId];
-  c.querySelector('.tip').textContent = g && g.guess ? g.guess : '';   // empty -> hidden
+  const cat = CATS[c.dataset.cat] || { label: '?', color: '#888' };
+  const has = !!(g && g.guess);
+  const guessLine = has
+    ? `<div class="text-paper text-[11px] leading-tight">${esc(g.guess)}</div>` : '';
+  c.querySelector('.tip').innerHTML =
+    `<div class="tracking-[.18em] text-[9px]" style="color:${cat.color}">${cat.label.toUpperCase()}</div>${guessLine}`;
+  c.classList.toggle('guessed', has);   // (3) mark chips the player has decoded
   if (g && g.confidence) c.dataset.conf = g.confidence;
 }
 function refreshChips(toneId) {
@@ -225,8 +290,14 @@ function addLily(resp) {
   row.className = 'flex items-center gap-2';
   const chips = document.createElement('div');
   chips.className = 'flex flex-wrap gap-2 items-center';
-  const els = resp.tones.map(t => { const c = makeChip(t); chips.appendChild(c); return c; });
+  let discovered = 0;
+  const els = resp.tones.map(t => {
+    const isNew = !seenTones.has(t.id);
+    if (isNew) { seenTones.add(t.id); discovered++; }
+    const c = makeChip(t, isNew); chips.appendChild(c); return c;
+  });
   row.appendChild(chips);
+  if (discovered) showToast(`✦ ${discovered === 1 ? 'A new tone' : discovered + ' new tones'} surfaced — open the lexicon to decode ${discovered === 1 ? 'it' : 'them'}`);
   if (els.length) {
     const replay = document.createElement('button');
     replay.title = 'replay';
@@ -252,16 +323,91 @@ function addNotes(notes) {
   host.querySelector('.empty')?.remove();
   notes.forEach(n => {
     const el = document.createElement('div');
-    el.className = 'note relative bg-paper text-ink px-4 py-3.5 rounded-sm shadow-[0_10px_24px_rgba(0,0,0,.45)] whitespace-pre-wrap text-xs leading-[1.5] animate-pin'
+    el.className = 'note relative bg-paper text-ink px-4 py-3.5 rounded-sm shadow-[0_10px_24px_rgba(0,0,0,.45)] whitespace-pre-wrap text-xs leading-[1.5] just-pinned'
       + (n.centered ? ' centered mx-auto my-[30px] max-w-[88%]' : ' mx-2 mb-[26px]');
     if (!n.centered) el.style.setProperty('--rot', seededRot(n.id) + 'deg');
+    // (2) header: an icon for the artifact type + the title
     const t = document.createElement('div');
-    t.className = 'font-medium tracking-[.05em] mb-2 text-[11px] uppercase text-[#7a5c3e]';
-    t.textContent = n.title;
+    t.className = 'flex items-center gap-1.5 font-medium tracking-[.05em] mb-2 text-[11px] uppercase text-[#7a5c3e]';
+    t.innerHTML = `<span class="text-[13px] not-italic" style="filter:grayscale(.35)">${noteIcon(n.asset)}</span><span>${esc(n.title)}</span>`;
     el.appendChild(t);
+    if (n.found) {            // how the investigation surfaced it
+      const f = document.createElement('div');
+      f.className = 'text-[10px] italic text-[#9a7d5e] mb-2 leading-snug';
+      f.textContent = '“' + n.found + '”';
+      el.appendChild(f);
+    }
     el.appendChild(document.createTextNode(n.body));
+    if (n.hint) {             // (#1) evidence helps decode the lexicon
+      const h = document.createElement('div');
+      h.className = 'not-italic mt-2.5 pt-2 border-t border-black/10 text-[10px] text-[#7a5c3e] flex items-center gap-1.5';
+      h.innerHTML = '🔑 <span>a clue to one of her tones — open the lexicon</span>';
+      el.appendChild(h);
+    }
+    // (1) NEW badge that fades, plus a toast — discovery should feel like an event
+    const badge = document.createElement('div');
+    badge.className = 'absolute -top-2 -right-2 bg-accent text-[#1a120b] text-[8px] tracking-[.12em] px-1.5 py-0.5 rounded shadow transition-opacity duration-700';
+    badge.textContent = 'NEW';
+    el.appendChild(badge);
+    setTimeout(() => badge.classList.add('opacity-0'), 3200);
+    setTimeout(() => badge.remove(), 4000);
     host.appendChild(el);
+    showToast(`${noteIcon(n.asset)} New evidence — ${esc(n.title)}`);
   });
+  renderStory();   // a new note rewrites Her Story (and updates the tab count)
+}
+
+// --- Her Story tab: a narrative assembled from found-evidence summaries ----------
+async function renderStory() {
+  if (!session) return;
+  const v = await api('/api/story?session_id=' + session);
+  $('#storyCount').textContent = v.found ? `(${v.found}/${v.total})` : '';
+  const host = $('#story');
+  if (!v.fragments.length) {
+    host.innerHTML = '<div class="font-serif text-base italic text-muted opacity-60">Her story is still blank. Find evidence to begin writing it.</div>';
+    return;
+  }
+  host.innerHTML = v.fragments.map(f =>
+    `<p class="font-serif text-[16px] leading-[1.6] text-paper/90 mb-4">${esc(f.summary)}</p>`).join('');
+}
+function setTabStyle(btn, active) {
+  btn.classList.toggle('border-accent', active);
+  btn.classList.toggle('border-transparent', !active);
+  btn.classList.toggle('text-paper', active);
+  btn.classList.toggle('text-muted', !active);
+}
+function showTab(which) {
+  const ev = which === 'evidence';
+  $('#paneEvidence').classList.toggle('hidden', !ev);
+  $('#paneStory').classList.toggle('hidden', ev);
+  setTabStyle($('#tabEvidence'), ev);
+  setTabStyle($('#tabStory'), !ev);
+  if (!ev) renderStory();
+}
+// The intro briefing, kept on the evidence board after the modal is dismissed.
+function showCaseBrief() {
+  const host = $('#notes');
+  if (host.querySelector('.brief')) return;        // already pinned
+  host.querySelector('.empty')?.remove();
+  const el = document.createElement('div');
+  el.className = 'brief relative bg-paper text-ink px-4 py-3.5 rounded-sm shadow-[0_10px_24px_rgba(0,0,0,.45)] text-xs leading-[1.55] mx-2 mb-[26px] border-l-2 border-[#b8392c]';
+  el.innerHTML = `<div class="font-medium tracking-[.08em] mb-2 text-[11px] uppercase text-[#7a5c3e]">CASE BRIEF · LA-0419</div>
+    <div class="font-serif text-[15px] italic mb-2 text-[#3a2c1f]">Subject: Lily Anne, 19. She was in an accident.</div>
+    She can no longer speak in words — only in tones. Listen to her, ask your questions, and record what you believe each tone means in the lexicon. Piece together who she was — and what happened to her.`;
+  host.prepend(el);
+}
+// Shown while waiting for her response — pulsing dots in Lily's voice.
+function addThinking() {
+  const m = document.createElement('div');
+  m.className = 'thinking self-start max-w-[85%]';
+  m.innerHTML = `<div class="text-[10px] tracking-[.2em] text-accent mb-1.5">LILY</div>
+    <div class="flex items-center gap-1.5 h-10 px-1">
+      <span class="dot w-2 h-2 rounded-full bg-accent"></span>
+      <span class="dot w-2 h-2 rounded-full bg-accent"></span>
+      <span class="dot w-2 h-2 rounded-full bg-accent"></span>
+    </div>`;
+  $('#log').appendChild(m); scrollLog();
+  return m;
 }
 function seededRot(id){ let h=0; for(const ch of id) h=(h*31+ch.charCodeAt(0))%97; return (h%5)-2.2; }
 function scrollLog(){ const l=$('#log'); l.scrollTop=l.scrollHeight; }
@@ -271,17 +417,19 @@ async function send() {
   if (!text || busy || text.length > 280) return;
   busy = true; $('#send').disabled = true;
   addDetective(text); ta.value=''; updateCount();
+  const thinking = addThinking();
   try {
     const resp = await api('/api/turn', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({session_id:session, message:text})
     });
+    thinking.remove();
     const els = addLily(resp);
     await playTones(els);
     addNotes(resp.notes_unlocked);
     if (resp.act_changed) setAct(resp.act);
     $('#lexCount').textContent = `${resp.tones_seen}/24`;
-  } catch(e) { console.error(e); }
+  } catch(e) { thinking.remove(); console.error(e); }
   busy = false; $('#send').disabled = false; ta.focus();
 }
 
@@ -303,35 +451,59 @@ async function openLexicon() {
       cell.innerHTML = `<div class="text-[26px] w-[34px] text-center">?</div><div class="flex-1 opacity-60 text-xs">not yet heard</div>`;
     } else {
       if (e.guess) guesses[e.id] = {guess:e.guess, confidence:e.confidence};   // sync client map
+      const cat = CATS[e.category] || { label: '?', color: '#888' };
       cell.innerHTML = `<div class="text-[26px] w-[34px] text-center">${e.glyph}</div>
-        <div class="flex-1"><input data-id="${e.id}" value="${e.guess.replace(/"/g,'&quot;')}" placeholder="what does it mean?"
-          class="w-full bg-transparent border-0 border-b border-chipedge text-paper font-mono text-[13px] py-1 focus:outline-none focus:border-accent" />
-        <div class="bar h-1 rounded-sm mt-2 bg-[#3a3a3a]" data-c="${e.confidence||'red'}"></div></div>`;
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-1.5">
+            <span class="text-[9px] tracking-[.18em] px-1.5 py-0.5 rounded" style="color:${cat.color};border:1px solid ${cat.color}55">${cat.label.toUpperCase()}</span>
+            <span class="text-[10px] text-muted">heard ${e.seen}×</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <input data-id="${e.id}" value="${esc(e.guess)}" placeholder="what does it mean?"
+              class="flex-1 bg-transparent border-0 border-b border-chipedge text-paper font-mono text-[13px] py-1 focus:outline-none focus:border-accent" />
+            <button class="lexsave shrink-0 w-7 h-7 rounded border border-chipedge text-muted text-sm flex items-center justify-center transition hover:text-paper hover:border-accent" title="save (Enter)">↵</button>
+          </div>
+          <div class="bar h-1 rounded-sm mt-2 bg-[#3a3a3a]" data-c="${e.confidence||'red'}"></div>
+          ${e.hint ? `<div class="flex items-start gap-1.5 mt-2 text-[10px] text-warm/90 leading-snug"><span>🔑</span><span>${esc(e.hint)}</span></div>` : ''}
+        </div>`;
     }
     grid.appendChild(cell);
   });
-  grid.querySelectorAll('input').forEach(inp => {
-    inp.addEventListener('change', async () => {
-      const r = await api('/api/guess', {method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({session_id:session, tone_id:inp.dataset.id, guess:inp.value})});
-      inp.parentElement.querySelector('.bar').dataset.c = r.confidence;
-      guesses[r.tone_id] = {guess:r.guess, confidence:r.confidence};
-      refreshChips(r.tone_id);   // past chips now reveal the player's meaning on hover
-    });
-  });
-  $('#drawer').classList.add('translate-y-full') ;  // reset then open for transition
-  requestAnimationFrame(()=> $('#drawer').classList.remove('translate-y-full'));
+  grid.querySelectorAll('input').forEach(bindGuessInput);
+  requestAnimationFrame(()=> $('#drawer').classList.remove('-translate-x-full'));
+}
+
+// Wire one lexicon row: save on Enter, on the ↵ button, or on blur — with a ✓ flash
+// so it's clear the guess registered.
+function bindGuessInput(inp) {
+  const row = inp.parentElement;                 // input + ↵ button
+  const btn = row.querySelector('.lexsave');
+  const bar = row.parentElement.querySelector('.bar');
+  const save = async () => {
+    const r = await api('/api/guess', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({session_id:session, tone_id:inp.dataset.id, guess:inp.value})});
+    bar.dataset.c = r.confidence;
+    guesses[r.tone_id] = {guess:r.guess, confidence:r.confidence};
+    refreshChips(r.tone_id);                       // past chips reveal the meaning on hover
+    btn.textContent = '✓'; btn.classList.add('text-accent','border-accent');
+    setTimeout(() => { btn.textContent = '↵'; btn.classList.remove('text-accent','border-accent'); }, 900);
+  };
+  btn.addEventListener('click', save);
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); save(); } });
+  inp.addEventListener('change', save);            // blur / click-away also saves
 }
 
 $('#input').addEventListener('input', updateCount);
 $('#input').addEventListener('keydown', e => { if(e.key==='Enter' && !e.shiftKey){e.preventDefault(); send();} });
 $('#send').addEventListener('click', send);
 $('#lexBtn').addEventListener('click', openLexicon);
-$('#lexClose').addEventListener('click', () => $('#drawer').classList.add('translate-y-full'));
+$('#tabEvidence').addEventListener('click', () => showTab('evidence'));
+$('#tabStory').addEventListener('click', () => showTab('story'));
+$('#lexClose').addEventListener('click', () => $('#drawer').classList.add('-translate-x-full'));
 
-// Threshold modal: the click is the gesture that starts the ambient bed.
+// Threshold modal: dismiss it, and keep the briefing visible on the evidence board.
 function begin() {
-  startAmbient();
+  showCaseBrief();
   const intro = $('#intro');
   intro.classList.add('opacity-0');
   setTimeout(() => intro.remove(), 700);

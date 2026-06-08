@@ -18,6 +18,9 @@ THEMES = [
     (("nurse", "doctor", "hospital", "staff", "who else", "alone", "anyone", "room",
       "here with"),
      "hospital_staff", ["self_i", "self_feel", "truth_pause", "self_forget"]),
+    (("parent", "mother", "mom", "mum", "father", "dad", "family", "childhood",
+      "grew up", "home", "sister", "brother", "divorce"),
+     "family", ["self_remember", "time_before", "other_us", "emo_sad"]),
 ]
 
 GREETING = (("hello", "hi ", "hey", "are you", "can you hear", "okay", "there"),

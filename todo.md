@@ -12,34 +12,56 @@ fast vertical slice. Check items off as we go. Each item has a **DoD** (definiti
 
 ---
 
-## Current status (session handoff — updated end of Phase 3)
+## Current status (session handoff — updated end of "core-loop fun" pass)
 
-**Done:** Phase 0 (contracts/data), Phase 1 (tone + ambient synth), Phase 2 (engine +
-mock + Gradio-mounted server + full Tailwind UI), Phase 3 (real Gemma 4 E4B on Modal),
-plus Phase 7.1 (ambient ducking). Two commits on `main`.
+**Done:** Phases 0–3 (contracts/data, synth, engine+mock+Gradio+Tailwind UI, real
+Gemma 4 E4B on Modal). Phase 4 (evidence) and Phase 5.1 (lexicon drawer) now largely
+done. A big gameplay-feel + content pass landed this session (see below).
 
-**Model:** Gemma 4 **E4B** (GGUF Q4_K_M) via llama-cpp-python on a Modal **T4** — a
-deliberate change from PLAN.md's "12B" (build-small/cost; trivial to upgrade). Modal
-workspace `anik-islam1494`, deployed app `forgotten-lily` (class `Lily`).
+**This session's changes (all live):**
+- **Learnability:** category scaffold on chips + lexicon (Self/Other/Time/Emotion/
+  Action/Truth, colored); per-act tone cap (`ACT_TONE_CAP` 3/5/7) so Act I stays short
+  & decodable; prompt rewritten for direct answers (yes/no → truth tones, lead with the
+  honest emotion, `internal_emotion` must match tones / stop saying "curious").
+- **Vocabulary:** promoted `time_now` (∿) and `act_stay` (←) into Act I (8→10 tones);
+  relaxed the Act I→II gate accordingly.
+- **Evidence ⇄ lexicon:** each note has a `hint {tone_id,text}` that surfaces in the
+  lexicon once that tone is heard — evidence now *helps decode* the language.
+- **Empathy system:** caring/personal questions raise `state.empathy` (keyword
+  heuristic in game.py) → unlocks `empathy` backstory notes. 5 NEW notes (N11–N15:
+  two homes/divorce, mother's voicemail, counseling slip, unsent letter, friend M).
+  Every note now has `found` provenance + a `summary`/`order`.
+- **Her Story tab:** second tab beside Evidence; assembles found-note summaries into a
+  narrative (`/api/story`, `game.story_view`).
+- **UX:** ambient music REMOVED (tones only); intro brief pinned to evidence board;
+  lexicon is now a LEFT sidebar (conversation stays scrollable); Enter/↵ affordance to
+  save a guess; discovery feel (NEW chip flash + toast, note glow/badge + toast);
+  evidence-type icons; decoded-glyph corner-dot highlight; thinking dots while
+  generating; tooltip left-anchored (no clipping). Local `[modal ←]` response logging
+  in app/modal_inference.py.
+
+**Model:** Gemma 4 **E4B** (GGUF Q4_K_M) via llama-cpp-python on a Modal **T4** (not
+PLAN's 12B; trivial to upgrade). Workspace `anik-islam1494`, app `forgotten-lily`
+(class `Lily`). The `family` topic_signal was added → **redeploy done** this session.
 
 **Run it:**
 ```
-python tones/synth.py && python tones/ambient.py     # regenerate audio (gitignored)
+python tones/synth.py        # regenerate tone WAVs (gitignored); ambient.py now unused
 USE_MOCK=1 python app.py     # offline, rule-based mock, no GPU
 USE_MOCK=0 python app.py     # live Gemma on Modal (needs `modal token new` done)
 # game at http://localhost:7860/   ·   redeploy model: modal deploy modal_app/gemma.py
+# watch raw model JSON: modal app logs forgotten-lily
 ```
-Modal gotcha (already solved, see modal_app/gemma.py): use the PREBUILT
-llama-cpp-python CUDA wheel + CUDA runtime image + `libgomp1`; do NOT compile from
-source (libcuda link fails) and do NOT set chat_format (use the GGUF's template).
+Modal gotcha (solved, see modal_app/gemma.py): PREBUILT llama-cpp-python CUDA wheel +
+CUDA runtime image + `libgomp1`; do NOT compile from source, do NOT set chat_format.
 
-**Known quality TODO:** Lily over-uses `emo_happy` and parks `internal_emotion` at
-"curious" regardless of act; the per-act emotional register isn't really followed.
-Needs a prompt-tuning pass (esp. for the Act II/III tonal cooling).
+**Verify-by-playing TODO (highest value next):**
+- Confirm the P2 prompt fix actually cured `emo_happy`/`curious` overuse on the LIVE
+  model across Acts II/III (only smoke-tested; needs a real playthrough).
+- Tune empathy pacing (N15=2 … N14=5) and hint wording — enough nudge, no spoiler.
 
-**Recommended next:** Phase 5 (Nemotron lexicon scoring → also earns the NVIDIA prize;
-reuses the Modal setup). Then the ending sequence (7.3), then the prompt-tuning pass.
-The lexicon confidence bar currently uses a token-overlap mock in app/game.py.
+**Recommended next feature:** Phase 5.2 (Nemotron lexicon scoring → replaces the
+token-overlap mock in `game.score_guess`; earns the NVIDIA prize). Then ending (7.3).
 
 ---
 
@@ -86,20 +108,26 @@ The lexicon confidence bar currently uses a token-overlap mock in app/game.py.
   - DoD: malformed model output never crashes a turn.
 
 ## Phase 4 — Notes / Evidence Board
-- [ ] **4.1** Write all 10 note bodies + source/design the visual assets (text thread, sketchbook, forms, photo) per PLAN §7.3.
-  - DoD: each note renders with intended "read twice" content.
-- [ ] **4.2** Evidence board UI (Tailwind): kraft cards, seeded rotation, red pushpin, DM Mono, pin-drop animation.
-  - DoD: notes appear as designed; rotation stable across reloads.
-- [ ] **4.3** Unlock engine: threshold (lexicon size) + topic (Gemma `topic_signal`) → reveal note. N10 placed flat/center, unpinned.
-  - DoD: asking about art unlocks N02; 6-tone threshold unlocks N03; finale reveals N10.
+- [x] **4.1** Write all note bodies (now **15**: original 10 + N11–N15 backstory — divorce,
+  voicemail, counseling, unsent letter, friend). Each has `found` provenance, `hint`,
+  `summary`/`order`. **Visual asset images NOT made** — cards are text-only (see backlog).
+  - DoD: each note renders with intended "read twice" content. ✓ (text)
+- [x] **4.2** Evidence board UI (Tailwind): kraft cards, seeded rotation, red pushpin, pin-drop
+  animation, per-type icons, NEW badge/glow, provenance + hint lines, Evidence/Her-Story tabs.
+  - DoD: notes appear as designed; rotation stable across reloads. ✓
+- [x] **4.3** Unlock engine: threshold + topic + **empathy** → reveal note. N10 flat/center, unpinned.
+  - DoD: art→N02; threshold→N03; family→N11; empathy→N15/N12; finale reveals N10. ✓
+  - Note: `topic_signal` now includes `family` (+ server-side `FAMILY_CUES` fallback).
 
 ## Phase 5 — Lexicon + Nemotron Scoring
-- [ ] **5.1** Lexicon drawer (slides up): glyph, guess text field, color confidence bar; locked tones as grayed `?`.
-  - DoD: drawer opens, guesses persist, unseen tones hidden as count.
+- [x] **5.1** Lexicon drawer (now a **left sidebar**): glyph, category tag, "heard N×",
+  guess field + ↵/Enter save, color confidence bar, evidence `hint` line; locked tones as `?`.
+  - DoD: drawer opens, guesses persist, conversation stays scrollable while open. ✓
 - [ ] **5.2** **Nemotron-Mini 4B** on Modal (T4) — semantic scoring of guess vs the tone's observed contexts → {red/amber/teal/green}.
   - DoD: a correct guess trends green across turns; wrong stays red. **No numbers shown.**
-- [ ] **5.3** Retroactive chip updates: past message chips reflect current lexicon/confidence.
-  - DoD: changing a guess updates hovers on old chips.
+- [x] **5.3** Retroactive chip updates: saving a guess updates all past chips (`refreshChips`),
+  reveals the guess on hover, and marks decoded chips with a corner dot. ✓
+  - (Confidence still from the token-overlap mock until 5.2 lands.)
 
 ## Phase 6 — Moderation + Input Edge Cases
 - [ ] **6.1** Nemotron dual-role: harmful input → Lily plays `∅`, journal line *"She doesn't respond to that."* (PLAN §8.2).
@@ -108,10 +136,12 @@ The lexicon confidence bar currently uses a token-overlap mock in app/game.py.
   - DoD: irrelevant input handled diegetically.
 
 ## Phase 7 — Atmosphere + Ending
-- [x] **7.1** Background ambient piano (CC0) via Web Audio API; **duck to silence during tones**, fade back (PLAN §6.5).
-  - DoD: world goes quiet whenever Lily speaks.
-- [ ] **7.2** Act-based color-temperature transitions via Tailwind CSS vars (warm → gray-amber → cold mono). Music EQ shift per act; gone by Act III.
-  - DoD: visible/audible drift across acts.
+- [x] ~~**7.1** Background ambient piano + duck during tones~~ — **REMOVED by design**
+  (felt wrong; only the tones make sound now). `tones/ambient.py` is now unused.
+- [ ] **7.2** Act-based color-temperature transitions via Tailwind CSS vars (warm → gray-amber →
+  cold mono). (Music EQ per act dropped — no ambient music anymore.)
+  - DoD: visible color drift across acts. (Palette vars exist on `body[data-act]`; verify the
+    transition reads clearly Act I→II→III.)
 - [ ] **7.3** Ending sequence: final 7-tone sequence (1.5s apart) → 5s fade to white → **Kokoro TTS** line *"I just wanted someone to know it wasn't his fault."* → 8s silence → memorial screen (name, dates, player's full lexicon). No score/replay.
   - DoD: full ending plays start to finish as scripted (PLAN §4.5).
 
@@ -129,6 +159,25 @@ The lexicon confidence bar currently uses a token-overlap mock in app/game.py.
   - DoD: live public Space + video + README submitted; badges claimed.
 
 ---
+
+## Backlog — polish & verify (from the core-loop / content pass)
+Things deliberately deferred or worth a second look later:
+- [ ] **Live prompt verification** — confirm on real Gemma that the P2 fix cured the
+  `emo_happy`/`internal_emotion="curious"` overuse across Acts II/III (only smoke-tested).
+- [ ] **Empathy tuning** — playtest thresholds (N15=2 … N14=5) and the empathy/personal
+  keyword lists; make sure caring players actually reach the deeper notes, non-caring don't.
+- [ ] **Hint balance** — the lexicon `hint` text should nudge, not give away; review wording.
+- [ ] **Note visual assets** — cards are text-only. PLAN §7.3 wanted designed artifacts
+  (text-thread screenshot, sketchbook, forms, photo). Decide: keep text (clean, shippable)
+  or generate/source images and render them. Icons currently stand in for type.
+- [ ] **N10 / total-tones gate** — N10 needs all 24 tones *seen*; with the Act I widening,
+  reconfirm a full playthrough actually surfaces all 24 before the finale can fire.
+- [ ] **Story tab ordering** — narrative is sequenced by note `order`; reread the assembled
+  text once all 15 are found to ensure it flows as one coherent arc.
+- [ ] **Empathy → Nemotron** — replace the keyword heuristic with the Nemotron classifier
+  when Phase 6 lands (richer, fewer false negatives).
+- [ ] **Mobile / narrow layout** — the left lexicon sidebar + 2-col grid + tabs need a
+  responsive pass (Phase 9.3).
 
 ### Prize → Task traceability
 | Prize/Badge | Covered by |

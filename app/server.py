@@ -72,7 +72,7 @@ def turn(body: TurnIn):
             "active_tones": active_tone_ids(st["act"]),
             "lexicon_state": {k: v["guess"] for k, v in st["lexicon"].items()},
         })
-    return game.apply_turn(st, resp)
+    return game.apply_turn(st, resp, msg)
 
 
 @app.get("/api/state")
@@ -89,6 +89,11 @@ def state(session_id: str):
 @app.get("/api/lexicon")
 def lexicon(session_id: str):
     return game.lexicon_view(_get(session_id))
+
+
+@app.get("/api/story")
+def story(session_id: str):
+    return game.story_view(_get(session_id))
 
 
 @app.post("/api/guess")
