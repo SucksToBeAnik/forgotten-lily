@@ -12,6 +12,37 @@ fast vertical slice. Check items off as we go. Each item has a **DoD** (definiti
 
 ---
 
+## Current status (session handoff — updated end of Phase 3)
+
+**Done:** Phase 0 (contracts/data), Phase 1 (tone + ambient synth), Phase 2 (engine +
+mock + Gradio-mounted server + full Tailwind UI), Phase 3 (real Gemma 4 E4B on Modal),
+plus Phase 7.1 (ambient ducking). Two commits on `main`.
+
+**Model:** Gemma 4 **E4B** (GGUF Q4_K_M) via llama-cpp-python on a Modal **T4** — a
+deliberate change from PLAN.md's "12B" (build-small/cost; trivial to upgrade). Modal
+workspace `anik-islam1494`, deployed app `forgotten-lily` (class `Lily`).
+
+**Run it:**
+```
+python tones/synth.py && python tones/ambient.py     # regenerate audio (gitignored)
+USE_MOCK=1 python app.py     # offline, rule-based mock, no GPU
+USE_MOCK=0 python app.py     # live Gemma on Modal (needs `modal token new` done)
+# game at http://localhost:7860/   ·   redeploy model: modal deploy modal_app/gemma.py
+```
+Modal gotcha (already solved, see modal_app/gemma.py): use the PREBUILT
+llama-cpp-python CUDA wheel + CUDA runtime image + `libgomp1`; do NOT compile from
+source (libcuda link fails) and do NOT set chat_format (use the GGUF's template).
+
+**Known quality TODO:** Lily over-uses `emo_happy` and parks `internal_emotion` at
+"curious" regardless of act; the per-act emotional register isn't really followed.
+Needs a prompt-tuning pass (esp. for the Act II/III tonal cooling).
+
+**Recommended next:** Phase 5 (Nemotron lexicon scoring → also earns the NVIDIA prize;
+reuses the Modal setup). Then the ending sequence (7.3), then the prompt-tuning pass.
+The lexicon confidence bar currently uses a token-overlap mock in app/game.py.
+
+---
+
 ## Phase 0 — Project Scaffolding & Contracts
 - [x] **0.1** Repo layout: `app/` (gr.Server + frontend), `modal/` (inference fns), `tones/` (synth + generated WAVs), `notes/` (note content + assets), `data/` (lexicon/tone defs), `docs/`.
   - DoD: directories exist, README stub, `.gitignore` (ignore `*.wav` build output, model weights, `__pycache__`).
