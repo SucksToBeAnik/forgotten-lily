@@ -19,6 +19,28 @@ ACT1_TONES = [t["id"] for t in TONES["tones"] if t["act_active"] == 1]
 # early make the language learnable; expressive expansion is earned in later acts.
 ACT_TONE_CAP = {1: 3, 2: 5, 3: 7}
 
+# Lily's grammar. Gemma chooses WHICH tones she says; we choose the ORDER they
+# read in, so chips form a coherent phrase ("I feel sad") instead of a bag of
+# words ("feel sad I"). Lower = earlier. Other-tones are treated as objects (the
+# common case: "I love you", "I remember him"). The finale is exempt — it ships a
+# hand-authored order (see server.py / PLAN 4.4). Tuned for the short Act I phrases
+# where misordering would be most visible.
+GRAMMAR_ORDER = {
+    "truth_yes": 0, "truth_no": 0,                                   # answer first
+    "self_i": 1,                                                     # subject
+    "self_feel": 2, "self_remember": 2, "self_forget": 2,            # inner verbs
+    "emo_love": 3, "emo_happy": 3, "emo_sad": 3, "emo_afraid": 3,    # emotion
+    "act_want": 4, "act_go": 4, "act_stay": 4, "act_fall": 4,        # action
+    "other_you": 5, "other_him": 5, "other_us": 5, "other_world": 5,  # object
+    "time_now": 6, "time_before": 6, "time_after": 6, "time_always": 6,  # time
+    "truth_pause": 7, "truth_nothing": 8,                            # breath, end
+}
+
+
+def _order_tones(tone_ids):
+    """Sort Lily's chosen tones into her grammar (stable). Unknown ids sort last."""
+    return sorted(tone_ids, key=lambda t: GRAMMAR_ORDER.get(t, 50))
+
 
 def new_session():
     return {
@@ -171,6 +193,10 @@ def apply_turn(state, inference_response, message=""):
     tones = [tid for tid in inference_response.get("tones", []) if tid in active][:cap]
     if not tones:  # never break character; a safe in-character "drift"
         tones = [tid for tid in ("self_remember", "truth_pause") if tid in active] or [ACT1_TONES[0]]
+    # render in Lily's grammar so the phrase reads coherently; the finale keeps
+    # its hand-authored order (PLAN 4.4).
+    if inference_response.get("special") != "finale":
+        tones = _order_tones(tones)
 
     tone_ctxs = state.setdefault("tone_contexts", {})
     for tid in tones:
