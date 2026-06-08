@@ -13,7 +13,7 @@ is a developer map.
 ```
 app/        gr.Server backend + custom HTML/Tailwind/JS frontend
   static/   index.html, tones/ (generated WAVs), notes/ (assets), audio/ (ambient)
-modal/      Modal serverless GPU inference functions (Gemma, Nemotron, MiniCPM)
+modal_app/  Modal serverless GPU inference (Gemma 4 E4B; Nemotron, MiniCPM later)
 tones/      Procedural tone synthesis (scipy/numpy) -> app/static/tones/*.wav
 notes/      Note source content + asset generation
 data/       tones.json (vocabulary), notes.json (evidence) — single sources of truth

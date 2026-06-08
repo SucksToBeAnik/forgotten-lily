@@ -43,15 +43,15 @@ fast vertical slice. Check items off as we go. Each item has a **DoD** (definiti
   - DoD: refresh-safe state; act advances per STATE rules.
 
 ## Phase 3 — Modal Inference (replace the mock)
-- [ ] **3.1** Modal account/CLI auth; persistent **Volume** for weights.
+- [x] **3.1** Modal account/CLI auth; persistent **Volume** for weights.
   - DoD: `modal token` set; empty volume created.
-- [ ] **3.2** **Gemma 4 12B** GGUF Q4_K_M via `llama-cpp-python` on A10G; download-to-volume on first run.
+- [x] **3.2** **Gemma 4 12B** GGUF Q4_K_M via `llama-cpp-python` on A10G; download-to-volume on first run.
   - DoD: warm function returns text for a prompt.
-- [ ] **3.3** Author + iterate **Lily system prompt** — enforces tone-only output, respects `active_tones`, emits the JSON contract, stays in character.
+- [x] **3.3** Author + iterate **Lily system prompt** — enforces tone-only output, respects `active_tones`, emits the JSON contract, stays in character.
   - DoD: 10/10 test prompts return schema-valid JSON using only active tones.
-- [ ] **3.4** Swap mock → Modal in gr.Server (keep mock behind a flag for offline dev).
+- [x] **3.4** Swap mock → Modal in gr.Server (keep mock behind a flag for offline dev).
   - DoD: vertical slice runs on real Gemma; `USE_MOCK=1` still works.
-- [ ] **3.5** Robustness: JSON repair/validation, retry, fallback to a safe in-character tone (`◇ —`) on malformed output.
+- [x] **3.5** Robustness: JSON repair/validation, retry, fallback to a safe in-character tone (`◇ —`) on malformed output.
   - DoD: malformed model output never crashes a turn.
 
 ## Phase 4 — Notes / Evidence Board
