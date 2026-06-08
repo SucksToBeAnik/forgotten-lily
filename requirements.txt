@@ -1,0 +1,4 @@
+# Local dev (tone synthesis + gr.Server). Inference deps live in modal/.
+numpy>=2.0
+scipy>=1.13
+gradio>=4.44

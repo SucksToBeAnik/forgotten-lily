@@ -1,0 +1,106 @@
+{
+  "_comment": "The 10 evidence notes (PLAN 7.3). unlock_type: 'threshold' (lexicon_size >= unlock_value) or 'topic' (Gemma topic_signal == unlock_value). 'act' is the earliest act the note can appear. 'body' is the artifact text shown on the card; 'design' is a render hint for Phase 4.",
+  "topic_signals": ["art", "university", "relationship", "hospital_staff"],
+  "notes": [
+    {
+      "id": "N01",
+      "title": "Text thread — 11:43pm",
+      "unlock_type": "threshold",
+      "unlock_value": 2,
+      "act": 1,
+      "asset": "n01_text_thread.png",
+      "design": "Screenshot of a phone messaging app, dark bubbles. Timestamp 11:43pm. Read first as a cold breakup; designed to re-read after the twist.",
+      "body": "R  ·  11:43pm\n\nR: you've been quiet all week\nR: did i do something\nLily: no\nR: then talk to me. please\nLily: i'm just tired\nR: you're always tired lately\nLily: i know\nLily: i'm sorry\nR: i don't want sorry. i want you to be here\nLily: i am here\nR: not really\n\n[read 11:51pm]"
+    },
+    {
+      "id": "N02",
+      "title": "Sketchbook — figure study",
+      "unlock_type": "topic",
+      "unlock_value": "art",
+      "act": 1,
+      "asset": "n02_sketchbook.png",
+      "design": "Pencil figure study. Eyes rendered with extraordinary precision and life. The mouth is absent — not erased, never drawn.",
+      "body": "A half-finished figure study in soft pencil. The eyes are alive — every lash, the wet light caught in them, rendered with impossible care. The face trails into nothing below them. The mouth was never drawn. In the corner, faint: \"come back to this.\""
+    },
+    {
+      "id": "N03",
+      "title": "Award email — Design Symposium",
+      "unlock_type": "threshold",
+      "unlock_value": 6,
+      "act": 1,
+      "asset": "n03_award_email.png",
+      "design": "An email client screenshot. Subject highlighted. Status: UNREAD. Timestamp two days AFTER the accident date (callback in Act III).",
+      "body": "From: International Design Symposium <awards@idsymposium.org>\nSubject: Congratulations — you are a Finalist\nReceived: [two days after the incident]   ●  UNREAD\n\n\"We are thrilled to inform you that your submission, 'A Held Breath,' has been selected as a finalist in this year's Generative & Mixed-Media category...\"\n\nThe message was never opened."
+    },
+    {
+      "id": "N04",
+      "title": "CS assignment — margin notes",
+      "unlock_type": "topic",
+      "unlock_value": "university",
+      "act": 1,
+      "asset": "n04_assignment.png",
+      "design": "Scan of a printed CS assignment, dense with handwritten margin notes and tiny drawings. Warm, alive, personal.",
+      "body": "Printed lab sheet: 'Assignment 4 — Recursive Structures.' The margins are full. Tiny drawings — a fern, a staircase, a wave. Beside one function, in careful handwriting:\n\n\"this function feels like a held breath. it waits and waits and then all at once it lets everything go. i think that's beautiful. (will prof think i'm insane if i write that in the report) (writing it anyway)\""
+    },
+    {
+      "id": "N05",
+      "title": "Photograph — at her desk",
+      "unlock_type": "threshold",
+      "unlock_value": 10,
+      "act": 2,
+      "asset": "n05_photo_desk.png",
+      "design": "Candid photo, someone else's camera. Lily laughing at her desk, beautiful chaos around her. The note that makes the player love her.",
+      "body": "A candid photo — she didn't know it was being taken. Lily at her desk mid-laugh, head tipped back, hand half-raised as if to wave the camera off. Around her: pinned sketches curling at the corners, three open textbooks, three half-empty mugs, a tangle of cables, a single dried flower taped to the monitor. The room is beautiful chaos. She looks completely, ordinarily alive."
+    },
+    {
+      "id": "N06",
+      "title": "Text thread — two days before",
+      "unlock_type": "topic",
+      "unlock_value": "relationship",
+      "act": 2,
+      "asset": "n06_text_thread2.png",
+      "design": "Second message thread. R is trying hard; Lily answers in one word then goes silent. Player now understands she was pulling away.",
+      "body": "R  ·  two days before\n\nR: are you okay?\nLily: yeah\nR: can we talk\nLily: soon\nR: just tell me what's wrong. whatever it is\nR: i'm not going anywhere\nLily: i know\nR: ?\nR: lily?\n\n[delivered]"
+    },
+    {
+      "id": "N07",
+      "title": "Hospital intake form",
+      "unlock_type": "threshold",
+      "unlock_value": 14,
+      "act": 2,
+      "asset": "n07_intake_form.png",
+      "design": "Standard intake form. Admission date smudged/illegible. Status field covered by a thick black redaction bar. Discharge: N/A.",
+      "body": "MERCY GENERAL — PATIENT INTAKE\n\nPatient name:  Lily Anne\nDate of admission:  [smudged — illegible]\nAttending:  ——————\nStatus:  ████████████████\nDischarge date:  N / A\n\nForm incomplete. Filed without signature."
+    },
+    {
+      "id": "N08",
+      "title": "Nurse shift log",
+      "unlock_type": "topic",
+      "unlock_value": "hospital_staff",
+      "act": 2,
+      "asset": "n08_shift_log.png",
+      "design": "Photocopy of the ward shift log for the relevant week. The nurse Lily seemed to reference appears nowhere. No matching name on record.",
+      "body": "WARD 4 — SHIFT LOG (week of the incident)\n\nMon  Okafor / Reyes\nTue  Reyes / Halloran\nWed  Halloran / Brandt\nThu  Brandt / Okafor\nFri  Okafor / Reyes\n\nNo entry matches the name. No staff by that name is on the ward roster. Cross-checked twice."
+    },
+    {
+      "id": "N09",
+      "title": "Journal page",
+      "unlock_type": "threshold",
+      "unlock_value": 18,
+      "act": 3,
+      "asset": "n09_journal.png",
+      "design": "Torn page from a small notebook. Handwriting more hurried than usual. What she was going to say to R, written out so she'd get it right.",
+      "body": "A torn page, the handwriting faster than usual:\n\n\"ok. say it plainly. — it isn't you. it was never you. i need space to become the thing i'm trying to become and i can't do that and be what you need at the same time, not yet. i love you in a way that doesn't fit the shape we made. that's not your fault. i should have said it weeks ago.\n\ntell him tonight. on the walk back. don't write around it this time.\""
+    },
+    {
+      "id": "N10",
+      "title": "Police report — case closed",
+      "unlock_type": "threshold",
+      "unlock_value": 24,
+      "act": 3,
+      "asset": "n10_police_report.png",
+      "design": "Appears differently from all others — placed flat in the center of the board, not pinned. Incident date matches N07 admission date.",
+      "body": "INCIDENT REPORT — CASE CLOSED\n\nName of deceased:  Lily Anne, 19\nDate of incident:  [matches admission date]\nLocation:  pedestrian crossing, library road\n\nFindings:  Deceased at the scene. No other parties involved. No further action.\nPersonal effects catalogued and returned to family.\n\nCase closed."
+    }
+  ]
+}

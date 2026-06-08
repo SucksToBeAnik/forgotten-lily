@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Forgotten Lily</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          bg: 'var(--bg)', bg2: 'var(--bg2)', paper: 'var(--paper)', ink: 'var(--ink)',
+          warm: 'var(--warm)', accent: 'var(--accent)', muted: 'var(--muted)',
+          chip: 'var(--chip)', chipedge: 'var(--chip-edge)',
+        },
+        fontFamily: { serif: ['"Cormorant Garamond"', 'serif'], mono: ['"DM Mono"', 'monospace'] },
+        keyframes: {
+          pin: {
+            '0%':   { opacity: 0, transform: 'translateY(-30px) rotate(var(--rot,-2deg)) scale(.9)' },
+            '100%': { opacity: 1, transform: 'translateY(0) rotate(var(--rot,-2deg))' },
+          },
+        },
+        animation: { pin: 'pin .6s cubic-bezier(.2,1.3,.4,1) both' },
+      },
+    },
+  };
+</script>
+<style>
+  /* Act-driven color temperature (PLAN 10.4). data-act swaps the palette;
+     Tailwind colors above resolve to these vars, so utilities re-theme live. */
+  :root, [data-act="1"] {
+    --bg:#1c1714; --bg2:#241d18; --paper:#efe6d4; --ink:#2a2018;
+    --warm:#d8a36b; --accent:#c98a5e; --muted:#8a7a68; --chip:#33271f;
+    --chip-edge:#5c4632; --glow:rgba(216,163,107,.35);
+  }
+  [data-act="2"] {
+    --bg:#16181a; --bg2:#1c2024; --paper:#e2ddd3; --ink:#2a2a2a;
+    --warm:#a89a86; --accent:#8f9aa0; --muted:#73726e; --chip:#23272b;
+    --chip-edge:#3d4448; --glow:rgba(150,160,170,.25);
+  }
+  [data-act="3"] {
+    --bg:#0e0f10; --bg2:#141517; --paper:#d6d6d6; --ink:#1a1a1a;
+    --warm:#9a9a9a; --accent:#8a8a8a; --muted:#5e5e5e; --chip:#1a1b1d;
+    --chip-edge:#2c2d2f; --glow:rgba(140,140,140,.15);
+  }
+  body { background:radial-gradient(120% 100% at 70% 0%, var(--bg2), var(--bg)); }
+  /* Bespoke bits that read poorly as utilities */
+  .note::before { content:''; position:absolute; top:-7px; left:50%; width:11px; height:11px;
+    transform:translateX(-50%); border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #ff7a6b, #b8392c); box-shadow:0 2px 4px rgba(0,0,0,.5); }
+  .note.centered::before { display:none; }
+  .chip.playing { border-color:var(--accent) !important; box-shadow:0 0 16px var(--glow); transform:scale(1.12); }
+  .chip[data-conf="green"] { border-color:#5fae7e; }
+  .chip[data-conf="teal"]  { border-color:#4f9a9a; }
+  .chip[data-conf="amber"] { border-color:#c79a4e; }
+  .tip:empty { display:none; }                 /* no guess -> no tooltip (PLAN: discovery) */
+  .chip:hover .tip { opacity:1; }
+  .bar[data-c="red"]   { background:linear-gradient(90deg,#7a2f24 30%,#3a3a3a 30%); }
+  .bar[data-c="amber"] { background:linear-gradient(90deg,#c79a4e 55%,#3a3a3a 55%); }
+  .bar[data-c="teal"]  { background:linear-gradient(90deg,#4f9a9a 80%,#3a3a3a 80%); }
+  .bar[data-c="green"] { background:#5fae7e; }
+  ::-webkit-scrollbar { width:8px; } ::-webkit-scrollbar-thumb { background:var(--chip-edge); border-radius:4px; }
+</style>
+</head>
+<body data-act="1" class="h-screen overflow-hidden font-mono text-paper transition-colors duration-[2500ms]">
+  <!-- Intro / threshold modal: gives context and provides the first gesture so the
+       ambient bed can begin (browsers block autoplay until the user interacts). -->
+  <div id="intro" class="fixed inset-0 z-50 flex items-center justify-center bg-bg/95 backdrop-blur-sm transition-opacity duration-700">
+    <div class="max-w-[560px] text-center px-8">
+      <div class="font-mono text-warm tracking-[.3em] text-[11px] mb-7">CASE LA-0419 · SUBJECT: LILY ANNE</div>
+      <h1 class="font-serif text-[52px] leading-none text-paper mb-7">Forgotten Lily</h1>
+      <p class="font-serif text-[21px] italic text-paper/90 leading-relaxed mb-5">
+        A girl sits across from you. She was in an accident. She can no longer speak in words — only in tones.
+      </p>
+      <p class="font-mono text-[13px] text-muted leading-[1.9] mb-9">
+        You are the detective. Listen to her. Ask your questions.<br/>
+        Learn what each tone means and record your guesses in the lexicon.<br/>
+        Piece together who she was — and what happened to her.<br/><br/>
+        <span class="text-warm/80">Best experienced with sound. Headphones recommended.</span>
+      </p>
+      <button id="beginBtn" class="bg-accent text-[#1a120b] border-none rounded-md px-10 py-3.5 font-mono tracking-[.2em] text-sm cursor-pointer transition hover:brightness-110">BEGIN</button>
+    </div>
+  </div>
+
+  <header class="flex items-baseline justify-between px-7 py-4 border-b border-white/[.06]">
+    <span class="font-serif text-[26px] tracking-[.18em] font-medium text-warm transition-colors duration-[2500ms]">FORGOTTEN LILY</span>
+    <span class="text-[11px] tracking-[.15em] text-muted">CASE <b class="text-paper font-medium">LA-0419</b> &nbsp;·&nbsp; SUBJECT <b class="text-paper font-medium">LILY ANNE</b> &nbsp;·&nbsp; ACT <b class="text-paper font-medium" id="actNum">I</b></span>
+    <button id="lexBtn" class="text-[11px] tracking-[.12em] text-muted border border-chipedge px-3 py-1.5 rounded-sm bg-transparent transition hover:text-paper hover:border-accent">LEXICON <span id="lexCount">0/24</span></button>
+  </header>
+
+  <div class="grid grid-cols-[minmax(280px,1fr)_1.6fr]" style="height:calc(100% - 67px)">
+    <!-- Evidence board -->
+    <section class="p-[22px] overflow-y-auto border-r border-white/[.06]">
+      <h2 class="text-[11px] tracking-[.22em] text-muted mb-[18px]">EVIDENCE BOARD</h2>
+      <div id="notes"><div class="empty font-serif text-base italic text-muted opacity-60">Nothing has surfaced yet.</div></div>
+    </section>
+
+    <!-- Conversation -->
+    <section class="flex flex-col px-[30px] pt-[22px] pb-4 min-h-0">
+      <div id="preamble" class="font-serif text-[19px] italic text-muted leading-[1.5] mb-5 max-w-[60ch]">She can't speak. The doctors say it may be trauma-related. She responds to presence. She makes sounds. I've been asked to try.</div>
+      <div id="log" class="flex-1 overflow-y-auto pr-2 flex flex-col gap-[18px]"></div>
+      <div class="mt-3.5">
+        <div class="flex gap-2.5 items-end">
+          <textarea id="input" maxlength="320" placeholder="Say something to her…"
+            class="flex-1 resize-none h-12 bg-black/25 border border-chipedge rounded-md text-paper font-mono text-sm px-3.5 py-3 focus:outline-none focus:border-accent"></textarea>
+          <button id="send" class="bg-accent text-[#1a120b] border-none rounded-md px-[22px] py-3 font-mono tracking-[.1em] cursor-pointer transition disabled:opacity-40 disabled:cursor-not-allowed">SEND</button>
+        </div>
+        <div class="flex justify-between items-center mt-1.5 text-[11px] text-muted">
+          <span id="hint">She answers only in tones.</span><span class="count" id="count">0 / 280</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Lexicon drawer -->
+  <div id="drawer" class="fixed left-0 right-0 bottom-0 h-[62vh] bg-bg2 border-t border-chipedge translate-y-full transition-transform duration-500 ease-[cubic-bezier(.3,1,.4,1)] px-[30px] py-[22px] overflow-y-auto z-20 shadow-[0_-20px_40px_rgba(0,0,0,.5)]">
+    <span id="lexClose" class="absolute top-[18px] right-6 cursor-pointer text-muted">close ✕</span>
+    <h2 class="text-xs tracking-[.22em] text-muted mb-1">LEXICON</h2>
+    <div class="text-[11px] text-muted mb-[18px]">What you believe each tone means. The bar is her — not a score.</div>
+    <div id="lexGrid" class="grid gap-3.5" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))"></div>
+  </div>
+
+<script>
+const $ = s => document.querySelector(s);
+const ROMAN = {1:'I',2:'II',3:'III'};
+let session = null, busy = false;
+const guesses = {};   // tone_id -> {guess, confidence}, the player's own decoding
+
+// --- ambient bed: always playing, ducks to silence only while she speaks (PLAN 6.5)
+const AMBIENT_VOL = 0.16;
+let audioCtx, ambientGain, ambientEl, ambientStarted = false;
+function startAmbient() {
+  if (ambientStarted) return; ambientStarted = true;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  ambientEl = new Audio('/static/audio/ambient.wav');
+  ambientEl.loop = true;
+  const src = audioCtx.createMediaElementSource(ambientEl);
+  ambientGain = audioCtx.createGain();
+  ambientGain.gain.value = AMBIENT_VOL;
+  src.connect(ambientGain).connect(audioCtx.destination);
+  ambientEl.play().catch(() => { ambientStarted = false; });
+}
+function fadeAmbient(to, secs) {
+  if (!ambientGain) return;
+  const now = audioCtx.currentTime, g = ambientGain.gain;
+  g.cancelScheduledValues(now); g.setValueAtTime(g.value, now);
+  g.linearRampToValueAtTime(to, now + secs);
+}
+const duck = () => fadeAmbient(0.0, 0.4);          // world goes quiet for her
+const unduck = () => fadeAmbient(AMBIENT_VOL, 1.2); // ...then breathes back in
+// browsers block autoplay until a gesture; start the bed on first interaction
+['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, startAmbient, { once: true }));
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function start() {
+  const d = await api('/api/new', {method:'POST'});
+  session = d.session_id;
+  setAct(d.act);
+}
+function setAct(act) { document.body.dataset.act = act; $('#actNum').textContent = ROMAN[act] || act; }
+
+// --- sequential tone playback (the world goes quiet for her; PLAN 6.5) -------
+function playTones(chipEls) {
+  return new Promise(resolve => {
+    duck();                       // mute the ambient bed while she speaks
+    let i = 0;
+    const step = () => {
+      if (i >= chipEls.length) { unduck(); return resolve(); }
+      const el = chipEls[i];
+      el.classList.add('opacity-100', 'scale-100', 'playing');
+      el.classList.remove('opacity-[.35]', 'scale-[.8]');
+      const a = new Audio(el.dataset.audio);
+      const next = () => { el.classList.remove('playing'); i++; setTimeout(step, 220); };
+      a.onended = next; a.onerror = next; a.play().catch(next);
+    };
+    step();
+  });
+}
+
+const CHIP_CLS = "chip relative inline-flex items-center justify-center w-10 h-10 text-xl rounded-md bg-chip border border-chipedge text-paper transition-all duration-300 opacity-[.35] scale-[.8]";
+
+function makeChip(t) {
+  const c = document.createElement('span');
+  c.className = CHIP_CLS;
+  c.textContent = t.glyph;
+  c.dataset.audio = t.audio; c.dataset.toneId = t.id;
+  const tip = document.createElement('span');
+  tip.className = "tip absolute bottom-[120%] left-1/2 -translate-x-1/2 bg-[#0c0a08] border border-chipedge text-paper text-[10px] whitespace-nowrap px-2 py-1 rounded opacity-0 pointer-events-none transition-opacity duration-200";
+  c.appendChild(tip);
+  applyGuessToChip(c);          // show the player's guess only if they've made one
+  return c;
+}
+
+function applyGuessToChip(c) {
+  const g = guesses[c.dataset.toneId];
+  c.querySelector('.tip').textContent = g && g.guess ? g.guess : '';   // empty -> hidden
+  if (g && g.confidence) c.dataset.conf = g.confidence;
+}
+function refreshChips(toneId) {
+  document.querySelectorAll(`.chip[data-tone-id="${toneId}"]`).forEach(applyGuessToChip);
+}
+
+function addDetective(text) {
+  const m = document.createElement('div');
+  m.className = 'self-end max-w-[75%] text-right';
+  m.innerHTML = `<div class="text-[10px] tracking-[.2em] text-muted">DETECTIVE</div><div class="body font-serif text-[19px] text-paper"></div>`;
+  m.querySelector('.body').textContent = text;
+  $('#log').appendChild(m); scrollLog();
+}
+
+function addLily(resp) {
+  const m = document.createElement('div');
+  m.className = 'self-start max-w-[85%]';
+  m.innerHTML = `<div class="text-[10px] tracking-[.2em] text-accent mb-1.5">LILY</div>`;
+  const row = document.createElement('div');
+  row.className = 'flex items-center gap-2';
+  const chips = document.createElement('div');
+  chips.className = 'flex flex-wrap gap-2 items-center';
+  const els = resp.tones.map(t => { const c = makeChip(t); chips.appendChild(c); return c; });
+  row.appendChild(chips);
+  if (els.length) {
+    const replay = document.createElement('button');
+    replay.title = 'replay';
+    replay.className = 'replay shrink-0 w-7 h-7 rounded-full border border-chipedge text-muted text-xs flex items-center justify-center transition hover:text-paper hover:border-accent';
+    replay.textContent = '↻';
+    replay.addEventListener('click', () => { if (!busy) playTones(els); });
+    row.appendChild(replay);
+  }
+  m.appendChild(row);
+  $('#log').appendChild(m); scrollLog();
+  if (resp.journal_line) {
+    const j = document.createElement('div');
+    j.className = 'self-start font-serif italic text-base text-muted';
+    j.textContent = resp.journal_line;
+    $('#log').appendChild(j);
+  }
+  return els;
+}
+
+function addNotes(notes) {
+  if (!notes.length) return;
+  const host = $('#notes');
+  host.querySelector('.empty')?.remove();
+  notes.forEach(n => {
+    const el = document.createElement('div');
+    el.className = 'note relative bg-paper text-ink px-4 py-3.5 rounded-sm shadow-[0_10px_24px_rgba(0,0,0,.45)] whitespace-pre-wrap text-xs leading-[1.5] animate-pin'
+      + (n.centered ? ' centered mx-auto my-[30px] max-w-[88%]' : ' mx-2 mb-[26px]');
+    if (!n.centered) el.style.setProperty('--rot', seededRot(n.id) + 'deg');
+    const t = document.createElement('div');
+    t.className = 'font-medium tracking-[.05em] mb-2 text-[11px] uppercase text-[#7a5c3e]';
+    t.textContent = n.title;
+    el.appendChild(t);
+    el.appendChild(document.createTextNode(n.body));
+    host.appendChild(el);
+  });
+}
+function seededRot(id){ let h=0; for(const ch of id) h=(h*31+ch.charCodeAt(0))%97; return (h%5)-2.2; }
+function scrollLog(){ const l=$('#log'); l.scrollTop=l.scrollHeight; }
+
+async function send() {
+  const ta = $('#input'); const text = ta.value.trim();
+  if (!text || busy || text.length > 280) return;
+  busy = true; $('#send').disabled = true;
+  addDetective(text); ta.value=''; updateCount();
+  try {
+    const resp = await api('/api/turn', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({session_id:session, message:text})
+    });
+    const els = addLily(resp);
+    await playTones(els);
+    addNotes(resp.notes_unlocked);
+    if (resp.act_changed) setAct(resp.act);
+    $('#lexCount').textContent = `${resp.tones_seen}/24`;
+  } catch(e) { console.error(e); }
+  busy = false; $('#send').disabled = false; ta.focus();
+}
+
+function updateCount(){
+  const n = $('#input').value.length;
+  const c = $('#count'); c.textContent = `${n} / 280`;
+  c.classList.toggle('text-[#c2533f]', n > 280);
+  $('#send').disabled = n === 0 || n > 280 || busy;
+}
+
+// --- lexicon drawer ----------------------------------------------------------
+async function openLexicon() {
+  const view = await api('/api/lexicon?session_id=' + session);
+  const grid = $('#lexGrid'); grid.innerHTML = '';
+  view.entries.forEach(e => {
+    const cell = document.createElement('div');
+    cell.className = 'flex gap-3 items-center bg-black/20 border border-chipedge rounded-lg p-3' + (e.locked ? ' opacity-[.35]' : '');
+    if (e.locked) {
+      cell.innerHTML = `<div class="text-[26px] w-[34px] text-center">?</div><div class="flex-1 opacity-60 text-xs">not yet heard</div>`;
+    } else {
+      if (e.guess) guesses[e.id] = {guess:e.guess, confidence:e.confidence};   // sync client map
+      cell.innerHTML = `<div class="text-[26px] w-[34px] text-center">${e.glyph}</div>
+        <div class="flex-1"><input data-id="${e.id}" value="${e.guess.replace(/"/g,'&quot;')}" placeholder="what does it mean?"
+          class="w-full bg-transparent border-0 border-b border-chipedge text-paper font-mono text-[13px] py-1 focus:outline-none focus:border-accent" />
+        <div class="bar h-1 rounded-sm mt-2 bg-[#3a3a3a]" data-c="${e.confidence||'red'}"></div></div>`;
+    }
+    grid.appendChild(cell);
+  });
+  grid.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('change', async () => {
+      const r = await api('/api/guess', {method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({session_id:session, tone_id:inp.dataset.id, guess:inp.value})});
+      inp.parentElement.querySelector('.bar').dataset.c = r.confidence;
+      guesses[r.tone_id] = {guess:r.guess, confidence:r.confidence};
+      refreshChips(r.tone_id);   // past chips now reveal the player's meaning on hover
+    });
+  });
+  $('#drawer').classList.add('translate-y-full') ;  // reset then open for transition
+  requestAnimationFrame(()=> $('#drawer').classList.remove('translate-y-full'));
+}
+
+$('#input').addEventListener('input', updateCount);
+$('#input').addEventListener('keydown', e => { if(e.key==='Enter' && !e.shiftKey){e.preventDefault(); send();} });
+$('#send').addEventListener('click', send);
+$('#lexBtn').addEventListener('click', openLexicon);
+$('#lexClose').addEventListener('click', () => $('#drawer').classList.add('translate-y-full'));
+
+// Threshold modal: the click is the gesture that starts the ambient bed.
+function begin() {
+  startAmbient();
+  const intro = $('#intro');
+  intro.classList.add('opacity-0');
+  setTimeout(() => intro.remove(), 700);
+  $('#input').focus();
+}
+$('#beginBtn').addEventListener('click', begin);
+
+start();
+</script>
+</body>
+</html>
