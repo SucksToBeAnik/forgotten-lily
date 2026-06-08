@@ -42,6 +42,20 @@ def _order_tones(tone_ids):
     return sorted(tone_ids, key=lambda t: GRAMMAR_ORDER.get(t, 50))
 
 
+# Lily's mood persists across turns instead of being re-rolled each reply (which
+# made her flip warm→heavy→warm and feel disconnected). It is anchored to a per-act
+# baseline (PLAN act registers: hope → unease → release) and carried forward each
+# turn — derived from the emotion tone she actually voiced (more reliable than the
+# model's internal_emotion field), or held steady when she voices none. The mood is
+# fed back into the model so it colors WITHIN the current feeling. It will also drive
+# the melodic key/mode once the musician pivot lands. See [[design-pivot-musician]].
+ACT_BASELINE_MOOD = {1: "warm", 2: "wistful", 3: "releasing"}
+EMOTION_TONE_MOOD = {
+    "emo_happy": "light", "emo_sad": "heavy",
+    "emo_afraid": "afraid", "emo_love": "tender",
+}
+
+
 def new_session():
     return {
         "session_id": str(uuid.uuid4()),
@@ -52,6 +66,7 @@ def new_session():
         "lexicon": {},            # tone id -> {guess, confidence}
         "notes_unlocked": [],     # note ids, in unlock order
         "empathy": 0,             # rises when the detective asks caring/personal questions
+        "mood": ACT_BASELINE_MOOD[1],  # persistent emotional state, carried across turns
         "finale_played": False,
     }
 
@@ -218,11 +233,20 @@ def apply_turn(state, inference_response, message=""):
     if act_changed:
         newly += _unlock_notes(state, None)
 
+    # carry Lily's mood forward: take the emotion she actually voiced this turn;
+    # otherwise hold steady (continuity), snapping to the new baseline on a transition.
+    voiced = next((EMOTION_TONE_MOOD[t] for t in tones if t in EMOTION_TONE_MOOD), None)
+    if voiced:
+        state["mood"] = voiced
+    elif act_changed:
+        state["mood"] = ACT_BASELINE_MOOD[state["act"]]
+
     special = inference_response.get("special")
     return {
         "tones": [tone_payload(t) for t in tones],
         "journal_line": JOURNAL.get(special),
         "internal_emotion": inference_response.get("internal_emotion", ""),
+        "mood": state["mood"],
         "special": special,
         "topic_signal": topic,
         "act": state["act"],

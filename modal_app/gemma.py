@@ -74,8 +74,9 @@ CHARACTER = (
 )
 
 
-def build_system(active, act):
-    """active: list of {id, glyph, meaning}. Returns the system prompt string."""
+def build_system(active, act, mood="warm"):
+    """active: list of {id, glyph, meaning}. mood: Lily's carried emotional state.
+    Returns the system prompt string."""
     menu = "\n".join(f'  "{t["id"]}" ({t["glyph"]}) = {t["meaning"]}' for t in active)
     count, guide = ACT_TONES_GUIDE.get(act, ACT_TONES_GUIDE[1])
     return f"""{CHARACTER}
@@ -84,6 +85,9 @@ Right now you may use ONLY these tones (each has one fixed meaning):
 {menu}
 
 Your emotional register this moment: {ACT_REGISTER.get(act, ACT_REGISTER[1])}
+Carried from the moment before, you feel: {mood}. This is where you ARE right now —
+stay within it. Your feeling may shift, but only gradually and for a reason; never
+flip suddenly from one reply to the next. If nothing moves you, let this mood stand.
 
 How to respond to the detective's message:
 - Choose {count} that together capture your answer. Pick the RIGHT tones; you do not
@@ -161,7 +165,8 @@ class Lily:
 
         out = self.llm.create_chat_completion(
             messages=[
-                {"role": "system", "content": build_system(active, request.get("act", 1))},
+                {"role": "system", "content": build_system(
+                    active, request.get("act", 1), request.get("mood", "warm"))},
                 {"role": "user", "content": request.get("message", "")[:280]},
             ],
             response_format={"type": "json_object"},

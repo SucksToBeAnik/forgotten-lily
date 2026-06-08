@@ -72,6 +72,7 @@ def turn(body: TurnIn):
             "message": msg,
             "turn": st["turn"],
             "act": st["act"],
+            "mood": st.get("mood", "warm"),  # carried emotional state, colors the reply
             "active_tones": active_tone_ids(st["act"]),
             "lexicon_state": {k: v["guess"] for k, v in st["lexicon"].items()},
         })

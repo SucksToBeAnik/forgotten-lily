@@ -15,6 +15,7 @@ off these shapes.
   "message": "what do you remember about him?",
   "turn": 14,
   "act": 2,
+  "mood": "wistful",
   "active_tones": ["self_i", "self_feel", "other_you", "emo_happy", "emo_sad",
                    "truth_yes", "truth_no", "truth_pause", "self_remember",
                    "other_him", "time_before", "emo_love"],
@@ -30,6 +31,10 @@ off these shapes.
   Lily MUST NOT emit a tone outside this list.
 - `lexicon_state` — the player's current guesses (id → guess text). Passed for
   context/telemetry; Lily does not "know" these.
+- `mood` — Lily's carried emotional state (`warm|wistful|releasing` baseline per act,
+  or `light|heavy|afraid|tender` from the emotion she last voiced). The model stays
+  within it so her feeling persists across turns instead of flip-flopping. The server
+  owns mood (in `game.apply_turn`); the response's `mood` field echoes the updated value.
 
 ## Turn response — inference → server
 
