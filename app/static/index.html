@@ -216,20 +216,27 @@ async function start() {
 }
 function setAct(act) { document.body.dataset.act = act; $('#actNum').textContent = ROMAN[act] || act; }
 
-// --- sequential tone playback (the world goes quiet for her; PLAN 6.5) -------
+// --- melodic tone playback (the world goes quiet for her; PLAN 6.5) ----------
+// Each glyph is a note on one shared scale (see tones/synth.py). We trigger the
+// next note before the last has decayed (a fixed stride, matching synth --demo's
+// overlap) so the tails ring into each other and a reply plays as a little melody,
+// not a row of spaced beeps.
+const TONE_STRIDE_MS = 620;
 function playTones(chipEls) {
   return new Promise(resolve => {
-    let i = 0;
-    const step = () => {
-      if (i >= chipEls.length) { return resolve(); }
-      const el = chipEls[i];
-      el.classList.add('opacity-100', 'scale-100', 'playing');
-      el.classList.remove('opacity-[.35]', 'scale-[.8]');
-      const a = new Audio(el.dataset.audio);
-      const next = () => { el.classList.remove('playing'); i++; setTimeout(step, 220); };
-      a.onended = next; a.onerror = next; a.play().catch(next);
-    };
-    step();
+    if (!chipEls.length) return resolve();
+    chipEls.forEach((el, i) => {
+      setTimeout(() => {
+        el.classList.add('opacity-100', 'scale-100', 'playing');
+        el.classList.remove('opacity-[.35]', 'scale-[.8]');
+        const a = new Audio(el.dataset.audio);
+        a.play().catch(() => {});
+        // let the glyph glow through its ring-out, then settle
+        setTimeout(() => el.classList.remove('playing'), TONE_STRIDE_MS + 500);
+      }, i * TONE_STRIDE_MS);
+    });
+    // resolve once the final note has sounded and had a moment to ring
+    setTimeout(resolve, (chipEls.length - 1) * TONE_STRIDE_MS + 900);
   });
 }
 
