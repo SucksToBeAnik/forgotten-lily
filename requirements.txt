@@ -3,5 +3,5 @@
 # the deployed Gemma/Nemotron apps (USE_MOCK=0). Auth via MODAL_TOKEN_ID/SECRET.
 numpy>=2.0
 scipy>=1.13
-gradio>=4.44
+gradio>=5.49,<6
 modal>=0.64
