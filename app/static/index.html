@@ -151,8 +151,8 @@
   <audio id="ambient" src="/static/audio/ambient.wav" loop preload="auto"></audio>
 
   <!-- A dim glow that trails the cursor — soft "lamp" light, re-themed per act via --glow. -->
-  <div id="cursorGlow" class="pointer-events-none fixed left-0 top-0 z-[45] w-[320px] h-[320px] rounded-full opacity-0 transition-opacity duration-700"
-       style="background:radial-gradient(circle, var(--glow), transparent 65%); mix-blend-mode:screen; will-change:transform;"></div>
+  <div id="cursorGlow" class="pointer-events-none fixed left-0 top-0 z-[45] w-[240px] h-[240px] rounded-full opacity-0 transition-opacity duration-700"
+       style="background:radial-gradient(circle, var(--glow), transparent 55%); mix-blend-mode:screen; will-change:transform;"></div>
 
   <!-- Click-catcher behind the drawer: tapping the rest of the screen closes it. -->
   <div id="backdrop" class="fixed inset-0 z-20 bg-black/30 opacity-0 pointer-events-none transition-opacity duration-500"></div>
@@ -595,7 +595,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(
   const g = $('#cursorGlow');
   window.addEventListener('pointermove', e => {
     g.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) translate(-50%, -50%)`;
-    g.style.opacity = '1';
+    g.style.opacity = '0.28';      // dim — a faint trace of light, not a spotlight
   });
   window.addEventListener('pointerleave', () => { g.style.opacity = '0'; });
 })();

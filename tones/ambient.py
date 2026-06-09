@@ -1,17 +1,15 @@
 """Ambient background bed for Forgotten Lily (PLAN 6.5).
 
-A soft, slow piano figure — gentle arpeggiated chords that ring and decay — that
-plays continuously and ducks to silence only while Lily's tones sound.
+A soft, slow DRONE PAD — not piano. Layered, slightly detuned sine voices spell a
+quiet A-minor chord low and wide; each voice swells in and out on its own slow LFO,
+so the bed breathes and drifts without ever restating a melody. A faint high shimmer
+rises and falls over the top. The result sits under the tones as warm air, not music
+that competes with them.
 
-Generated procedurally (no external asset). Piano-ness comes from three things a
-sustained pad lacks:
-  1. a struck envelope: near-instant attack, continuous exponential decay;
-  2. a bright-to-dark spectrum: many partials, higher ones decaying faster;
-  3. slight inharmonicity (stretched partials), like real strings.
-
-Seamless loop: each note is mixed in with CIRCULAR (wrap-around) indexing, so a
-ringing tail that runs past the loop end folds back onto the start — the last
-chord rings into the first, exactly as it will every loop. No seam, no fade.
+Seamless loop with NO crossfade needed: every component is exactly periodic over the
+loop length T. Voice frequencies are snapped to an integer number of cycles per loop
+(`snap`), and every LFO runs a whole number of cycles across T — so the waveform at
+the loop's end meets its start with matching phase. No seam, no click.
 
     python tones/ambient.py   ->  app/static/audio/ambient.wav
 """
@@ -21,70 +19,54 @@ import numpy as np
 from scipy.io import wavfile
 
 SR = 44100
-T = 16.0                      # loop length (s); 4 chords x 4s
+T = 20.0                       # loop length (s) — long enough that the drift isn't obvious
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "app" / "static" / "audio" / "ambient.wav"
 
-# note name -> frequency (just the few octaves we need)
-N = {
-    "F2": 87.31, "G2": 98.00, "A2": 110.00, "C3": 130.81, "E3": 164.81,
-    "F3": 174.61, "G3": 196.00, "A3": 220.00, "B3": 246.94, "C4": 261.63,
-    "D4": 293.66, "E4": 329.63, "F4": 349.23, "G4": 392.00, "A4": 440.00,
-}
-
-# A gentle, slightly wistful progression: Am – F – C – G (vi–IV–I–V).
-# Each entry: (bass note, [arpeggio notes played low->high]).
-PROGRESSION = [
-    ("A2", ["A3", "C4", "E4"]),
-    ("F2", ["F3", "A3", "C4"]),
-    ("C3", ["C4", "E4", "G4"]),
-    ("G2", ["G3", "B3", "D4"]),
-]
-CHORD_S = T / len(PROGRESSION)     # seconds per chord
-ARP_OFFSETS = [0.0, 0.5, 1.0]      # when each arpeggio note is struck within a chord
-NOTE_LEN = 4.0                     # how long a struck note is rendered (rings + decays)
+# A-minor, voiced low and open: A2 E3 A3 C4 E4 (root, fifth, octave, minor-third, fifth).
+VOICES_HZ = [110.00, 164.81, 220.00, 261.63, 329.63]
+# Three slightly detuned copies per voice -> a slow natural chorus/beating.
+DETUNE_HZ = [-0.16, 0.0, 0.13]
+# Soft, dark spectrum per voice (mostly fundamental, a little 2nd/3rd) -> warm, not buzzy.
+HARMONICS = [1.0, 0.22, 0.08]
 
 
-def piano_note(freq, vel):
-    """One struck, decaying, slightly inharmonic piano-ish tone."""
-    n = int(NOTE_LEN * SR)
-    t = np.arange(n) / SR
-    B = 0.0005                      # inharmonicity coefficient
-    sig = np.zeros(n)
-    for k in range(1, 13):
-        fk = freq * k * np.sqrt(1 + B * k * k)
-        if fk > SR / 2:
-            break
-        amp = 1.0 / (k ** 1.3)              # spectral rolloff
-        decay = np.exp(-t * (0.6 + 0.4 * k))   # slow ring; higher partials die faster -> mellows
-        sig += amp * decay * np.sin(2 * np.pi * fk * t)
-    atk = int(0.004 * SR)                   # hammer attack
-    sig[:atk] *= np.linspace(0, 1, atk)
-    return sig * vel
+def snap(f):
+    """Snap a frequency to a whole number of cycles over the loop -> seamless."""
+    return round(f * T) / T
 
 
-def add_circular(buf, note, start_sample):
-    """Mix `note` into `buf` (length N) starting at start_sample, wrapping around
-    the loop boundary so tails fold onto the start -> seamless."""
-    n = len(buf)
-    idx = (start_sample + np.arange(len(note))) % n
-    np.add.at(buf, idx, note)
+def voice(f0, t):
+    """One warm, detuned, multi-harmonic drone voice at fundamental f0."""
+    sig = np.zeros(len(t))
+    for det in DETUNE_HZ:
+        for k, amp in enumerate(HARMONICS, start=1):
+            sig += amp * np.sin(2 * np.pi * snap((f0 + det) * k) * t)
+    return sig / (len(DETUNE_HZ) * sum(HARMONICS))
 
 
 def main():
     n = int(T * SR)
+    t = np.arange(n) / SR
     buf = np.zeros(n)
-    for c, (bass, notes) in enumerate(PROGRESSION):
-        base = c * CHORD_S
-        add_circular(buf, piano_note(N[bass], 0.55), int(base * SR))       # soft bass
-        for off, name in zip(ARP_OFFSETS, notes):
-            add_circular(buf, piano_note(N[name], 0.40), int((base + off) * SR))
 
-    buf = buf / (np.max(np.abs(buf)) + 1e-9) * 0.7
+    for i, f0 in enumerate(VOICES_HZ):
+        # each voice breathes on its own slow swell — an integer number of cycles
+        # across the loop (1..5), so it stays seamless while the blend keeps shifting.
+        cycles = i + 1
+        lfo = 0.45 + 0.45 * np.sin(2 * np.pi * (cycles / T) * t - np.pi / 2)
+        weight = 0.95 / (1 + 0.55 * i)        # lower voices carry more weight
+        buf += weight * lfo * voice(f0, t)
+
+    # a faint high shimmer (E5) that fades in and out twice across the loop
+    shimmer_lfo = 0.5 + 0.5 * np.sin(2 * np.pi * (2 / T) * t)
+    buf += 0.06 * shimmer_lfo * np.sin(2 * np.pi * snap(659.25) * t)
+
+    buf = buf / (np.max(np.abs(buf)) + 1e-9) * 0.55
     pcm = np.int16(np.clip(buf, -1, 1) * 32767)
     OUT.parent.mkdir(parents=True, exist_ok=True)
     wavfile.write(OUT, SR, pcm)
-    print(f"Wrote {T:.0f}s seamless piano bed -> {OUT}  ({pcm.nbytes / 1024:.0f} KB)")
+    print(f"Wrote {T:.0f}s seamless drone bed -> {OUT}  ({pcm.nbytes / 1024:.0f} KB)")
 
 
 if __name__ == "__main__":
