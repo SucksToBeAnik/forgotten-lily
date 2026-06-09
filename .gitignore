@@ -5,8 +5,8 @@ app/static/tones/**/*.wav
 app/static/tones/*.wav
 app/static/audio/*.wav
 # ...except Lily's pre-rendered spoken line for the ending — it can't be regenerated
-# from a script on the Space (it's TTS), so it must ship in the repo.
-!app/static/audio/lily_final.wav
+# from a script on the Space (it's TTS), so it must ship in the repo (via Git-LFS).
+!app/static/audio/final_words.wav
 
 # Model weights / large assets (live on Modal Volume, not in git)
 *.gguf

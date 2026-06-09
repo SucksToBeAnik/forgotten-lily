@@ -152,7 +152,7 @@
 
   <!-- Lily's single spoken line, pre-rendered (PLAN 7.3 ending). Played once, after the
        finale tones fade out. -->
-  <audio id="finalVoice" src="/static/audio/lily_final.wav" preload="auto"></audio>
+  <audio id="finalVoice" src="/static/audio/final_words.wav" preload="auto"></audio>
 
   <!-- Ending: a slow fade into warm dark (matching the app, not a stark white), then the
        memorial (her name + the words you learned with her). Covers everything; no replay. -->
@@ -296,6 +296,18 @@ function playTones(chipEls) {
 
 const CHIP_CLS = "chip relative inline-flex items-center justify-center w-10 h-10 text-xl rounded-md bg-chip border border-chipedge text-paper transition-all duration-300 opacity-[.35] scale-[.8] select-none cursor-pointer";
 
+// Flip the hover tooltip below the glyph when there isn't room above it — the first
+// reply sits at the top of the scrolling log, where an upward tip would be clipped.
+function positionTip(chip) {
+  const tip = chip.querySelector('.tip');
+  if (!tip) return;
+  const logTop = $('#log').getBoundingClientRect().top;
+  const chipTop = chip.getBoundingClientRect().top;
+  const below = (chipTop - logTop) < (tip.offsetHeight + 14);
+  tip.classList.toggle('bottom-[120%]', !below);
+  tip.classList.toggle('top-[120%]', below);
+}
+
 function makeChip(t, isNew) {
   const c = document.createElement('span');
   c.className = CHIP_CLS;
@@ -314,6 +326,7 @@ function makeChip(t, isNew) {
   // double-click a glyph -> open the lexicon and drop the cursor straight onto its row
   c.title = 'double-click to record what it means';
   c.addEventListener('dblclick', e => { e.preventDefault(); openLexicon(c.dataset.toneId); });
+  c.addEventListener('mouseenter', () => positionTip(c));  // flip tip below near the top
   return c;
 }
 
@@ -530,7 +543,7 @@ async function runEnding() {
 
   // her voice — the one time words come through
   const v = $('#finalVoice');
-  try { v.volume = 1; await v.play(); await voiceEnded(v, 11000); }
+  try { v.volume = 1; await v.play(); await voiceEnded(v, 14000); }
   catch (e) { await sleep(4500); }      // autoplay blocked or missing -> hold a beat
 
   await sleep(3000);                    // silence
