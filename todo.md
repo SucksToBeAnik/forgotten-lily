@@ -12,7 +12,24 @@ fast vertical slice. Check items off as we go. Each item has a **DoD** (definiti
 
 ---
 
-## Current status (session handoff — updated end of "core-loop fun" pass)
+## Current status (session handoff)
+
+**LATEST PASS — story pivot + moderation + live HF Space (all deployed):**
+- **Live HF Space:** https://huggingface.co/spaces/build-small-hackathon/forgotten-lily
+  (org `build-small-hackathon`, gradio 5.49.1, Python 3.12, USE_MOCK=0 with Modal
+  secrets). `git push space main` redeploys. See memory `hf-space-deployment`.
+- **Phase 6 moderation DONE & wired** (Nemotron `moderate` in `/api/turn`).
+- **Story pivot DONE & deployed:** recentred from the relationship onto her unfulfilled
+  dreams — composer, travel, Mount Fuji at sunrise with both divorced parents after
+  graduation. R demoted to a faint thread. The accident night (morning breakup → parents
+  arguing at the handoff → she leaves on foot → the crossing) is reconstructed WITHOUT
+  revealing the outcome; all player-facing notes are PRESENT tense, death foreshadowing
+  removed from every note but the reveal (N10). **Tense discipline is load-bearing — keep
+  it.** 24→**27 tones** (3 always-on Link connectives ∧/↦/↺ for coherence; sort skipped
+  when she uses one). New **"Her Things"** tab (artifacts per note). Expanded case brief.
+  Both Modal apps redeployed (their images bundle tones.json). See `design-pivot-musician`.
+
+## Current status (earlier — "core-loop fun" pass)
 
 **Done:** Phases 0–3 (contracts/data, synth, engine+mock+Gradio+Tailwind UI, real
 Gemma 4 E4B on Modal). Phase 4 (evidence) and Phase 5.1 (lexicon drawer) now largely
@@ -163,7 +180,12 @@ its app name distinct from Gemma's `forgotten-lily` or deploys clobber each othe
   cold mono). (Music EQ per act dropped — no ambient music anymore.)
   - DoD: visible color drift across acts. (Palette vars exist on `body[data-act]`; verify the
     transition reads clearly Act I→II→III.)
-- [ ] **7.3** Ending sequence: final 7-tone sequence (1.5s apart) → 5s fade to white → **Kokoro TTS** line *"I just wanted someone to know it wasn't his fault."* → 8s silence → memorial screen (name, dates, player's full lexicon). No score/replay.
+- [ ] **7.3** Ending sequence: final hand-authored tone sequence (now 9 tones, in
+  server.py `/api/turn` finale branch — "I wanted to reach the world / and us / love /
+  let go / the end") → 5s fade to white → **Kokoro TTS** line — REFRAMED to the dream,
+  e.g. *"I just wanted to see the world — all three of us, watching the sun come up."*
+  (no longer the R line) → 8s silence → memorial screen (name, dates, player's full
+  lexicon). No score/replay.
   - DoD: full ending plays start to finish as scripted (PLAN §4.5).
 
 ## Phase 8 — Prize Extras
@@ -191,8 +213,9 @@ Things deliberately deferred or worth a second look later:
 - [ ] **Note visual assets** — cards are text-only. PLAN §7.3 wanted designed artifacts
   (text-thread screenshot, sketchbook, forms, photo). Decide: keep text (clean, shippable)
   or generate/source images and render them. Icons currently stand in for type.
-- [ ] **N10 / total-tones gate** — N10 needs all 24 tones *seen*; with the Act I widening,
-  reconfirm a full playthrough actually surfaces all 24 before the finale can fire.
+- [ ] **N10 / total-tones gate** — N10 needs all **27** tones *seen*; with the Act I
+  widening + 3 always-on connectives, reconfirm a full playthrough actually surfaces all
+  27 before the finale can fire (the connectives must each appear at least once).
 - [ ] **Story tab ordering** — narrative is sequenced by note `order`; reread the assembled
   text once all 15 are found to ensure it flows as one coherent arc.
 - [ ] **Empathy → Nemotron** — replace the keyword heuristic with the Nemotron classifier

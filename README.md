@@ -47,7 +47,7 @@ clobber each other): `forgotten-lily` (Gemma, class `Lily`) and
 
 ## Local dev
 ```
-python tones/synth.py          # generate the 24 tone WAVs (app/static/tones/)
+python tones/synth.py          # generate the 27 tone WAVs (app/static/tones/)
 USE_MOCK=1 python app.py       # run the game (Gradio-mounted) on mock inference, no GPU
 USE_MOCK=0 python app.py       # run on live Modal models (needs `modal token new`)
 # -> game UI at http://localhost:7860/   ·   Gradio engine at /engine

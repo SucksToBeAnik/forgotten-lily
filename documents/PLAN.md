@@ -47,15 +47,17 @@ The game ends when Lily speaks — once, in a real voice — one sentence she ne
 
 Lily is the kind of person who fills every margin. Her CS assignments have scraps of melody in the corners. Her manuscript books have snippets of code tucked between the staves. She can't fully separate the two things she loves — she thinks of programs the way she thinks of compositions, as things with rhythm and weight.
 
-She won an international student composition award at 18 — a piece that combined generative code with music she wrote by hand. The award email arrived the week she died. She never read it.
+A piece of hers — "A Held Breath," generative code woven with melody she writes by hand — is a finalist for an international student composition prize. She's been re-reading the email, saving the news to tell her parents in person.
+
+> NOTE (canon as of the story pivot — see todo.md / memory `design-pivot-musician`): the spine of Lily's story is now her UNFULFILLED DREAMS, not the relationship. She wants to become a composer, see the world, and stand at **Mount Fuji** at sunrise with **both** her divorced parents, together for once, after she graduates. R is a faint, gentle, recently-ended thread — not the center. Player-facing evidence is written in PRESENT tense and never reveals the twist; only the final reveal (N10) does. The sections below predate the pivot and are kept for design history; where they conflict, this note and the data files win.
 
 She was in her second year when everything happened. She was also in the middle of a relationship that was falling apart — someone named R. Not a bad person. Just two people who wanted different things and didn't know how to say it. Their last real conversation was at 11:43pm, three days before the accident. It did not go well.
 
 The accident was not dramatic. It was a Tuesday. She was walking home from the library. The details are in the police report — the one that surfaces at the very end of the game, the one that changes everything.
 
-**What Lily wanted, more than anything:** For someone to know that what happened between her and R wasn't his fault. She had been pulling away from him for weeks before the accident. He didn't know why. She hadn't told him yet. She was still figuring out how.
+**What Lily wants, more than anything** (pivot canon): the life still ahead of her — to become a composer, to see the whole world, and above all to stand at Mount Fuji at sunrise with both her parents, together for once, after she graduates. She grew up shuttled between two homes and learned to go quiet when things got hard; the trip is her dream of finally bringing them into one frame. R is a quiet, kind, recently-ended thread that weighs on her but is not the center.
 
-That unfinished thing is what kept her. That is why she stayed.
+The accident night (canon): that morning the gentle breakup with R; that evening her father comes to collect her from her mother's and the two argue in the hall; already raw, she leaves on foot into the dark toward the crossing. What keeps her is everything she still wants and never got to do.
 
 ---
 
@@ -113,7 +115,7 @@ The UI shifts almost imperceptibly. The warm cream begins cooling. Amber becomes
 - The night of the accident is something she circles but never lands on directly
 - 6 more tones are now active — language is getting richer, more nuanced
 
-**Act II ends when** the player has seen 18 of 24 tones and unlocked the hospital intake form note.
+**Act II ends when** the player has seen 18 of 27 tones and unlocked note N07 (her travel fund + new passport).
 
 ### 4.4 Act III — The Truth (Turns 61–90, All 24 Tones Active)
 
@@ -143,7 +145,9 @@ The screen brightens slowly to white over five seconds.
 
 Then a voice. Soft, young, slightly hesitant — Kokoro TTS rendering a 19-year-old's voice.
 
-> **"I just wanted someone to know it wasn't his fault."**
+> **"I just wanted to see the world — all three of us, watching the sun come up."**
+>
+> *(pivot canon; the old line — "I just wanted someone to know it wasn't his fault." — belonged to the relationship-centric version.)*
 
 Eight seconds of silence.
 
@@ -314,7 +318,7 @@ A torn page from a small notebook. Lily's handwriting, more hurried than usual. 
 She never got there.
 
 **N10 — Police report: case closed**
-*Unlocks: All 24 tones seen at least once (Act III)*
+*Unlocks: All 27 tones seen at least once (Act III)*
 This note appears differently from all others — placed flat in the center of the evidence board, not pinned. The incident date matches the hospital admission date on N07. Status: *deceased at the scene. No other parties involved. Personal effects catalogued and returned to family.*
 
 She died on the walk home. The accident was minor by road standards. It was enough.
@@ -541,7 +545,7 @@ This satisfies the Sharing is Caring badge and creates a public dataset of anony
 | Harmful input | Lily goes silent, in-character | Immersion never breaks |
 | Confirmation of guesses | Nemotron confidence bar only | Preserves the investigation feel — never explicit |
 | Background music | Ambient piano, ducks during tones | The contrast is the game's core emotional design |
-| Final sentence | "I just wanted someone to know it wasn't his fault." | Specific, earned, explains everything |
+| Final sentence | "I just wanted to see the world — all three of us, watching the sun come up." | Specific, earned, the dream she never reached |
 | UI framework | gr.Server + Tailwind + Vanilla JS | Required for the emotional design vision |
 | Tone generation | Procedural scipy (not neural) | Deterministic, instant, no model budget used |
 | Ending | No score, no replay prompt | The memorial screen is the ending |

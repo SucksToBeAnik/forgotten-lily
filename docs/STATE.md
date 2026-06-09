@@ -48,10 +48,10 @@ Evaluated after each turn. Forward-only; never regress.
   stall progression; a couple of rarely-used tones are tolerated.
 
 **Act II → Act III** when BOTH:
-- `len(tones_seen) >= 18` (18 of 24 tones seen — PLAN 4.3), AND
-- note `N07` (hospital intake form) is unlocked.
+- `len(tones_seen) >= 18` (18 of 27 tones seen — PLAN 4.3), AND
+- note `N07` (travel fund + passport) is unlocked.
 
-**Finale** — within Act III, when `len(tones_seen) == 24` AND `N10` unlocked:
+**Finale** — within Act III, when `len(tones_seen) == 27` AND `N10` unlocked:
 the server may trigger the ending sequence (`special: "finale"`), set
 `finale_played = true`. After that, normal input is closed; the ending plays out
 (PLAN 4.5).
@@ -60,12 +60,13 @@ the server may trigger the ending sequence (`special: "finale"`), set
 Re-evaluated every turn (`act >= note.act` always required):
 - **threshold notes** unlock when `lexicon_size >= unlock_value`.
 - **topic notes** unlock when the turn's `topic_signal == note.unlock_value`. Signals:
-  `music`, `university`, `relationship`, `hospital_staff`, `family`. The `family` signal
-  also has a server-side keyword fallback (`FAMILY_CUES`) when the model misses it.
+  `music`, `university`, `relationship`, `family`, `travel`. The `family` and `travel`
+  signals also have server-side keyword fallbacks (`FAMILY_CUES`, `TRAVEL_CUES`) when
+  the model misses them.
 - **empathy notes** unlock when `empathy >= unlock_value` — the vulnerable backstory
-  (friend's statement, mother's voicemail, counseling slip, unsent letter), gated
-  behind the detective showing care. Thresholds: N15=2, N12=3, N13=4, N14=5.
-- `N10` requires all 24 tones *seen* (`len(tones_seen) == 24`, per PLAN 7.3) — special-cased.
+  (friend's statement, mother's voicemail, wellbeing slip, the reconstructed evening),
+  gated behind the detective showing care. Thresholds: N15=2, N12=3, N13=4, N14=5.
+- `N10` requires every tone *seen* (`len(tones_seen) == 27`, per PLAN 7.3) — special-cased.
 
 Each note also carries `found` (investigation provenance, shown on the card), an
 optional `hint` (`{tone_id, text}` surfaced in the lexicon once that tone is heard —

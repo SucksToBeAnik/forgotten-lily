@@ -49,8 +49,8 @@ off these shapes.
 
 | Field | Type | Notes |
 |---|---|---|
-| `tones` | `string[]` | Tone `id`s, in playback order. All must be in `active_tones`. Asked to use {Act I: 1–3, Act II: 1–5, Act III: 1–6} per the act register; the server hard-trims to `ACT_TONE_CAP` (3/5/7) regardless. |
-| `topic_signal` | `string \| null` | One of `data/notes.json` `topic_signals` (`music`, `university`, `relationship`, `hospital_staff`, `family`) or `null`. Drives topic note unlocks. |
+| `tones` | `string[]` | Tone `id`s, in playback order. All must be in `active_tones`. Asked to use {Act I: 1–4, Act II: 1–5, Act III: 1–6} per the act register; the server hard-trims to `ACT_TONE_CAP` (4/5/7) regardless, except the finale (uncapped). The 3 Link connectives (`link_and`/`link_to`/`link_but`) are active in every act; when she uses one, the server keeps her ordering instead of regrouping. |
+| `topic_signal` | `string \| null` | One of `data/notes.json` `topic_signals` (`music`, `university`, `relationship`, `family`, `travel`) or `null`. Drives topic note unlocks. |
 | `internal_emotion` | `string` | Free tag for telemetry + atmosphere (e.g. `hope`, `unease`, `grief`). Never shown raw. |
 | `special` | `string \| null` | Reserved control signal. `null` normally. Values: `"silent"` (harmful input → play `truth_nothing` only), `"drift"` (off-topic → `self_remember`+`truth_pause`), `"finale"` (Act III ending sequence). |
 
