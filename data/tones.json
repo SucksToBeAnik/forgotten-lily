@@ -1,12 +1,13 @@
 {
-  "_comment": "The 24-tone vocabulary. One meaning per tone (PLAN 6.1). act_active = act number from which Lily may use the tone (PLAN 6.3). audio_profile drives procedural synthesis in tones/synth.py (PLAN 6.4). MUSIC: every tone sits on one shared A-minor-pentatonic scale (A C D E G) so any combination is consonant. `note` = scale step from synth.ROOT (A3=220Hz): 0=root, +5=octave up, negative=down. `base_freq` is the resolved Hz (kept for readability; synth recomputes from `note`). Each glyph's pitch is chosen to fit its meaning, registers cluster by category.",
+  "_comment": "The 27-tone vocabulary (24 content tones + 3 always-on connectives). One meaning per tone (PLAN 6.1). act_active = act number from which Lily may use the tone (PLAN 6.3); the Link connectives are act_active 1 so she can always join ideas into a coherent phrase. audio_profile drives procedural synthesis in tones/synth.py (PLAN 6.4). MUSIC: every tone sits on one shared A-minor-pentatonic scale (A C D E G) so any combination is consonant. `note` = scale step from synth.ROOT (A3=220Hz): 0=root, +5=octave up, negative=down. `base_freq` is the resolved Hz (kept for readability; synth recomputes from `note`). Each glyph's pitch is chosen to fit its meaning, registers cluster by category.",
   "categories": {
     "A": "Self",
     "B": "Other",
     "C": "Time",
     "D": "Emotion",
     "E": "Action",
-    "F": "Truth"
+    "F": "Truth",
+    "G": "Link"
   },
   "tones": [
     { "id": "self_i",        "glyph": "◈", "category": "A", "meaning": "I / me",                "act_active": 1, "audio_profile": { "note": 0,   "base_freq": 220.0, "waveform": "sine",     "duration": 1.6, "harmonics": [1.0, 0.40, 0.18], "envelope": "bell",  "interval": null,        "mod": null } },
@@ -37,6 +38,10 @@
     { "id": "truth_pause",   "glyph": "—", "category": "F", "meaning": "pause / breath",        "act_active": 1, "audio_profile": { "note": null,"base_freq": 0.0,   "waveform": "breath",   "duration": 0.6, "harmonics": [],               "envelope": "breath","interval": null,        "mod": null } },
     { "id": "truth_yes",     "glyph": "∎", "category": "F", "meaning": "yes / true",            "act_active": 1, "audio_profile": { "note": 6,   "base_freq": 523.3, "waveform": "sine",     "duration": 0.55,"harmonics": [1.0, 0.14, 0.05], "envelope": "pluck", "interval": null,        "mod": null } },
     { "id": "truth_no",      "glyph": "□", "category": "F", "meaning": "no / not",              "act_active": 1, "audio_profile": { "note": -5,  "base_freq": 110.0, "waveform": "triangle", "duration": 0.4, "harmonics": [1.0, 0.12],       "envelope": "pluck", "interval": null,        "mod": null } },
-    { "id": "truth_nothing", "glyph": "∅", "category": "F", "meaning": "nothing / the end",     "act_active": 3, "audio_profile": { "note": -10, "base_freq": 55.0,  "waveform": "sine",     "duration": 2.2, "harmonics": [1.0, 0.30],       "envelope": "swell", "interval": null,        "mod": null } }
+    { "id": "truth_nothing", "glyph": "∅", "category": "F", "meaning": "nothing / the end",     "act_active": 3, "audio_profile": { "note": -10, "base_freq": 55.0,  "waveform": "sine",     "duration": 2.2, "harmonics": [1.0, 0.30],       "envelope": "swell", "interval": null,        "mod": null } },
+
+    { "id": "link_and",      "glyph": "∧", "category": "G", "meaning": "and / with / together", "act_active": 1, "audio_profile": { "note": 2,   "base_freq": 293.7, "waveform": "triangle", "duration": 0.42,"harmonics": [1.0, 0.18],       "envelope": "pluck", "interval": null,        "mod": null } },
+    { "id": "link_to",       "glyph": "↦", "category": "G", "meaning": "to / toward / for",     "act_active": 1, "audio_profile": { "note": 2,   "base_freq": 293.7, "waveform": "triangle", "duration": 0.45,"harmonics": [1.0, 0.18],       "envelope": "pluck", "interval": null,        "mod": { "type": "glide", "semitones": 2 } } },
+    { "id": "link_but",      "glyph": "↺", "category": "G", "meaning": "but / yet / still",     "act_active": 1, "audio_profile": { "note": 1,   "base_freq": 261.6, "waveform": "triangle", "duration": 0.5, "harmonics": [1.0, 0.20],       "envelope": "pluck", "interval": null,        "mod": { "type": "detune", "cents": 12 } } }
   ]
 }

@@ -13,11 +13,21 @@ NOTES = json.loads((ROOT / "data" / "notes.json").read_text())
 
 TONE_BY_ID = {t["id"]: t for t in TONES["tones"]}
 NOTE_BY_ID = {n["id"]: n for n in NOTES["notes"]}
+TOTAL_TONES = len(TONES["tones"])
 ACT1_TONES = [t["id"] for t in TONES["tones"] if t["act_active"] == 1]
+# Act-1 CONTENT tones drive the act-advance gate; the always-on Link connectives
+# (category G) are excluded so adding grammar glue doesn't move the goalposts.
+ACT1_CONTENT = [t["id"] for t in TONES["tones"]
+                if t["act_active"] == 1 and t["category"] != "G"]
+# The connective tones (always active). When Lily uses one she is actively trying
+# to form a real phrase, so we trust her ordering instead of regrouping (below).
+LINK_TONES = {t["id"] for t in TONES["tones"] if t["category"] == "G"}
 
 # Per-act ceiling on how many tones Lily emits per turn. Short, literal phrases
 # early make the language learnable; expressive expansion is earned in later acts.
-ACT_TONE_CAP = {1: 3, 2: 5, 3: 7}
+# Act I is 4 (not 3) so a basic clause + a connective ("I feel sad", "want to go")
+# fits without forcing her to drop a word.
+ACT_TONE_CAP = {1: 4, 2: 5, 3: 7}
 
 # Lily's grammar. Gemma chooses WHICH tones she says; we choose the ORDER they
 # read in, so chips form a coherent phrase ("I feel sad") instead of a bag of
@@ -31,6 +41,7 @@ GRAMMAR_ORDER = {
     "self_feel": 2, "self_remember": 2, "self_forget": 2,            # inner verbs
     "emo_love": 3, "emo_happy": 3, "emo_sad": 3, "emo_afraid": 3,    # emotion
     "act_want": 4, "act_go": 4, "act_stay": 4, "act_fall": 4,        # action
+    "link_to": 4.5,                                                  # "...to/toward..."
     "other_you": 5, "other_him": 5, "other_us": 5, "other_world": 5,  # object
     "time_now": 6, "time_before": 6, "time_after": 6, "time_always": 6,  # time
     "truth_pause": 7, "truth_nothing": 8,                            # breath, end
@@ -38,7 +49,9 @@ GRAMMAR_ORDER = {
 
 
 def _order_tones(tone_ids):
-    """Sort Lily's chosen tones into her grammar (stable). Unknown ids sort last."""
+    """Sort Lily's chosen tones into her grammar (stable). Unknown ids sort last.
+    Skipped entirely when a connective is present (see apply_turn) — there she is
+    composing a real phrase and her own ordering is more trustworthy than the sort."""
     return sorted(tone_ids, key=lambda t: GRAMMAR_ORDER.get(t, 50))
 
 
@@ -93,6 +106,11 @@ FAMILY_CUES = (
     "parent", "mother", "mom", "mum", "father", "dad", "family", "childhood",
     "grew up", "grow up", "sister", "brother", "divorce", "home",
 )
+TRAVEL_CUES = (
+    "travel", "trip", "journey", "world", "fuji", "mountain", "japan", "abroad",
+    "passport", "escape", "go somewhere", "leave", "away", "see the world",
+    "places", "dream", "wander", "explore", "graduate", "after you graduate",
+)
 
 
 def _has_cue(message, cues):
@@ -135,8 +153,8 @@ def _maybe_advance_act(state):
     if act == 1:
         # tolerate a couple of rarely-used tones so adding Act I vocabulary
         # doesn't stall progression (was: every Act I tone seen twice).
-        seen_twice = sum(1 for tid in ACT1_TONES if seen.get(tid, 0) >= 2)
-        if lexicon_size(state) >= 5 and seen_twice >= max(5, len(ACT1_TONES) - 3):
+        seen_twice = sum(1 for tid in ACT1_CONTENT if seen.get(tid, 0) >= 2)
+        if lexicon_size(state) >= 5 and seen_twice >= max(5, len(ACT1_CONTENT) - 3):
             state["act"] = 2
             return True
     elif act == 2:
@@ -157,8 +175,8 @@ def _unlock_notes(state, topic_signal):
         if state["act"] < note["act"]:
             continue
         hit = False
-        if note["id"] == "N10":  # special: all 24 tones SEEN (PLAN 7.3)
-            hit = seen_total >= 24
+        if note["id"] == "N10":  # special: every tone SEEN (PLAN 7.3)
+            hit = seen_total >= TOTAL_TONES
         elif note["unlock_type"] == "threshold":
             hit = lex >= note["unlock_value"]
         elif note["unlock_type"] == "topic":
@@ -205,12 +223,15 @@ def apply_turn(state, inference_response, message=""):
         state["empathy"] += 1
 
     cap = ACT_TONE_CAP.get(state["act"], 7)
-    tones = [tid for tid in inference_response.get("tones", []) if tid in active][:cap]
+    chosen = [tid for tid in inference_response.get("tones", []) if tid in active]
+    # the finale is a hand-authored sequence (PLAN 4.4) — play it in full, uncapped.
+    tones = chosen if inference_response.get("special") == "finale" else chosen[:cap]
     if not tones:  # never break character; a safe in-character "drift"
         tones = [tid for tid in ("self_remember", "truth_pause") if tid in active] or [ACT1_TONES[0]]
     # render in Lily's grammar so the phrase reads coherently; the finale keeps
-    # its hand-authored order (PLAN 4.4).
-    if inference_response.get("special") != "finale":
+    # its hand-authored order (PLAN 4.4). When she reaches for a connective she is
+    # composing a real phrase — trust her ordering then rather than regrouping it.
+    if inference_response.get("special") != "finale" and not (set(tones) & LINK_TONES):
         tones = _order_tones(tones)
 
     tone_ctxs = state.setdefault("tone_contexts", {})
@@ -226,6 +247,8 @@ def apply_turn(state, inference_response, message=""):
         topic = None
     if topic is None and _has_cue(message, FAMILY_CUES):  # server-side family fallback
         topic = "family"
+    if topic is None and _has_cue(message, TRAVEL_CUES):  # server-side travel fallback
+        topic = "travel"
 
     newly = _unlock_notes(state, topic)
     act_changed = _maybe_advance_act(state)
@@ -254,6 +277,7 @@ def apply_turn(state, inference_response, message=""):
         "notes_unlocked": newly,
         "turn": state["turn"],
         "tones_seen": len(state["tones_seen_count"]),
+        "total_tones": TOTAL_TONES,
         "lexicon_size": lexicon_size(state),
         "finale": special == "finale",
     }
@@ -344,3 +368,22 @@ def story_view(state):
     ]
     frags.sort(key=lambda f: f["order"])
     return {"fragments": frags, "found": len(found), "total": len(NOTES["notes"])}
+
+
+def artifacts_view(state):
+    """The 'Her Things' tab: the personal objects behind each piece of evidence,
+    each with a line on what it means to her. Populates as notes are found, in the
+    order they surfaced (state['notes_unlocked'] is append-ordered)."""
+    items = []
+    for nid in state["notes_unlocked"]:
+        note = NOTE_BY_ID.get(nid, {})
+        art = note.get("artifact")
+        if art:
+            items.append({
+                "id": nid,
+                "name": art.get("name", note.get("title", "")),
+                "icon": art.get("icon", "✦"),
+                "relation": art.get("relation", ""),
+            })
+    total = sum(1 for n in NOTES["notes"] if n.get("artifact"))
+    return {"items": items, "found": len(items), "total": total}

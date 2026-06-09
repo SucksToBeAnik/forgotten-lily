@@ -89,12 +89,13 @@
       <div class="font-mono text-warm tracking-[.3em] text-[11px] mb-7">CASE LA-0419 · SUBJECT: LILY ANNE</div>
       <h1 class="font-serif text-[52px] leading-none text-paper mb-7">Forgotten Lily</h1>
       <p class="font-serif text-[21px] italic text-paper/90 leading-relaxed mb-5">
-        A girl sits across from you. She was in an accident. She can no longer speak in words — only in tones.
+        A girl sits across from you. Lily Anne, nineteen — a music student with a piece up for a prize, a jar of savings for a trip she hasn't taken, and a whole world she means to see. She was in an accident. She can no longer speak in words — only in tones.
       </p>
       <p class="font-mono text-[13px] text-muted leading-[1.9] mb-9">
-        You are the detective. Listen to her. Ask your questions.<br/>
+        You are the detective assigned to understand her. Listen. Ask your questions.<br/>
         Learn what each tone means and record your guesses in the lexicon.<br/>
-        Piece together who she was — and what happened to her.<br/><br/>
+        Her belongings surface as you go — read them, and the person comes into focus.<br/>
+        Piece together who she is — and what happened the night of the incident.<br/><br/>
         <span class="text-warm/80">Best experienced with sound. Headphones recommended.</span>
       </p>
       <button id="beginBtn" class="bg-accent text-[#1a120b] border-none rounded-md px-10 py-3.5 font-mono tracking-[.2em] text-sm cursor-pointer transition hover:brightness-110">BEGIN</button>
@@ -104,15 +105,16 @@
   <header class="flex items-baseline justify-between px-7 py-4 border-b border-white/[.06]">
     <span class="font-serif text-[26px] tracking-[.18em] font-medium text-warm transition-colors duration-[2500ms]">FORGOTTEN LILY</span>
     <span class="text-[11px] tracking-[.15em] text-muted">CASE <b class="text-paper font-medium">LA-0419</b> &nbsp;·&nbsp; SUBJECT <b class="text-paper font-medium">LILY ANNE</b> &nbsp;·&nbsp; ACT <b class="text-paper font-medium" id="actNum">I</b></span>
-    <button id="lexBtn" class="text-[11px] tracking-[.12em] text-muted border border-chipedge px-3 py-1.5 rounded-sm bg-transparent transition hover:text-paper hover:border-accent">LEXICON <span id="lexCount">0/24</span></button>
+    <button id="lexBtn" class="text-[11px] tracking-[.12em] text-muted border border-chipedge px-3 py-1.5 rounded-sm bg-transparent transition hover:text-paper hover:border-accent">LEXICON <span id="lexCount">0/27</span></button>
   </header>
 
   <div class="grid grid-cols-[minmax(280px,1fr)_1.6fr]" style="height:calc(100% - 67px)">
     <!-- Evidence board / Her Story (tabbed) -->
     <section class="flex flex-col overflow-hidden border-r border-white/[.06]">
       <div class="flex gap-1 px-[22px] pt-[18px] border-b border-white/[.06]">
-        <button id="tabEvidence" class="tab text-[11px] tracking-[.18em] px-3 py-2 border-b-2 border-accent text-paper">EVIDENCE</button>
-        <button id="tabStory" class="tab text-[11px] tracking-[.18em] px-3 py-2 border-b-2 border-transparent text-muted transition hover:text-paper">HER STORY <span id="storyCount" class="opacity-60"></span></button>
+        <button id="tabEvidence" class="tab text-[11px] tracking-[.16em] px-3 py-2 border-b-2 border-accent text-paper">EVIDENCE</button>
+        <button id="tabStory" class="tab text-[11px] tracking-[.16em] px-3 py-2 border-b-2 border-transparent text-muted transition hover:text-paper">HER STORY <span id="storyCount" class="opacity-60"></span></button>
+        <button id="tabThings" class="tab text-[11px] tracking-[.16em] px-3 py-2 border-b-2 border-transparent text-muted transition hover:text-paper">HER THINGS <span id="thingsCount" class="opacity-60"></span></button>
       </div>
       <div id="paneEvidence" class="flex-1 overflow-y-auto p-[22px]">
         <div id="notes"><div class="empty font-serif text-base italic text-muted opacity-60">Nothing has surfaced yet.</div></div>
@@ -120,6 +122,10 @@
       <div id="paneStory" class="hidden flex-1 overflow-y-auto p-[22px]">
         <div class="text-[11px] tracking-[.15em] text-muted mb-4">WHAT THE EVIDENCE TELLS YOU</div>
         <div id="story"><div class="font-serif text-base italic text-muted opacity-60">Her story is still blank. Find evidence to begin writing it.</div></div>
+      </div>
+      <div id="paneThings" class="hidden flex-1 overflow-y-auto p-[22px]">
+        <div class="text-[11px] tracking-[.15em] text-muted mb-4">THE THINGS SHE KEPT — AND WHAT THEY MEAN TO HER</div>
+        <div id="things"><div class="font-serif text-base italic text-muted opacity-60">Her things are still boxed away. Each piece of evidence brings one back.</div></div>
       </div>
     </section>
 
@@ -164,7 +170,9 @@ const CATS = {
   D: { label: 'Emotion', color: '#cf7b86' },
   E: { label: 'Action',  color: '#7fae7f' },
   F: { label: 'Truth',   color: '#b8b09c' },
+  G: { label: 'Link',    color: '#c9a66b' },
 };
+let TOTAL_TONES = 27;   // overwritten by the first turn's total_tones
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 const seenTones = new Set();   // tone ids the player has encountered this session (for "NEW")
@@ -184,18 +192,20 @@ function showToast(html) {
 // Map an evidence artifact to an icon by its asset filename (data/notes.json).
 function noteIcon(asset) {
   const a = (asset || '').toLowerCase();
-  if (a.includes('text_thread')) return '💬';
-  if (a.includes('sketch'))      return '🎨';
+  if (a.includes('text_thread') || a.includes('messages')) return '💬';
+  if (a.includes('fuji') || a.includes('postcard')) return '🗻';
+  if (a.includes('travel') || a.includes('fund') || a.includes('passport')) return '🛂';
+  if (a.includes('stages') || a.includes('list')) return '🎫';
+  if (a.includes('manuscript') || a.includes('score') || a.includes('song')) return '🎼';
+  if (a.includes('timeline'))    return '🕯️';
   if (a.includes('voicemail'))   return '📞';
   if (a.includes('counseling'))  return '🩺';
   if (a.includes('letter'))      return '💌';
   if (a.includes('statement'))   return '🗣️';
-  if (a.includes('childhood') || a.includes('folder') || a.includes('family')) return '👪';
-  if (a.includes('email'))       return '✉️';
+  if (a.includes('childhood') || a.includes('folder') || a.includes('family')) return '🏠';
+  if (a.includes('email'))       return '🏆';
   if (a.includes('assignment'))  return '📝';
   if (a.includes('photo'))       return '📷';
-  if (a.includes('intake') || a.includes('form')) return '🏥';
-  if (a.includes('log'))         return '📋';
   if (a.includes('journal'))     return '📓';
   if (a.includes('police') || a.includes('report')) return '🗂️';
   return '📄';
@@ -362,6 +372,7 @@ function addNotes(notes) {
     showToast(`${noteIcon(n.asset)} New evidence — ${esc(n.title)}`);
   });
   renderStory();   // a new note rewrites Her Story (and updates the tab count)
+  renderThings();  // ...and brings back the object behind it
 }
 
 // --- Her Story tab: a narrative assembled from found-evidence summaries ----------
@@ -377,19 +388,40 @@ async function renderStory() {
   host.innerHTML = v.fragments.map(f =>
     `<p class="font-serif text-[16px] leading-[1.6] text-paper/90 mb-4">${esc(f.summary)}</p>`).join('');
 }
+// --- Her Things tab: the personal objects behind the evidence ----------------
+async function renderThings() {
+  if (!session) return;
+  const v = await api('/api/artifacts?session_id=' + session);
+  $('#thingsCount').textContent = v.found ? `(${v.found}/${v.total})` : '';
+  const host = $('#things');
+  if (!v.items.length) {
+    host.innerHTML = '<div class="font-serif text-base italic text-muted opacity-60">Her things are still boxed away. Each piece of evidence brings one back.</div>';
+    return;
+  }
+  host.innerHTML = v.items.map(it => `
+    <div class="flex gap-3 items-start bg-black/15 border border-chipedge rounded-lg p-3.5 mb-3">
+      <div class="text-[26px] leading-none shrink-0">${it.icon}</div>
+      <div class="flex-1">
+        <div class="font-medium text-paper text-[13px] mb-1">${esc(it.name)}</div>
+        <div class="font-serif text-[15px] leading-[1.5] text-paper/80">${esc(it.relation)}</div>
+      </div>
+    </div>`).join('');
+}
 function setTabStyle(btn, active) {
   btn.classList.toggle('border-accent', active);
   btn.classList.toggle('border-transparent', !active);
   btn.classList.toggle('text-paper', active);
   btn.classList.toggle('text-muted', !active);
 }
+const TABS = { evidence: '#paneEvidence', story: '#paneStory', things: '#paneThings' };
+const TAB_BTNS = { evidence: '#tabEvidence', story: '#tabStory', things: '#tabThings' };
 function showTab(which) {
-  const ev = which === 'evidence';
-  $('#paneEvidence').classList.toggle('hidden', !ev);
-  $('#paneStory').classList.toggle('hidden', ev);
-  setTabStyle($('#tabEvidence'), ev);
-  setTabStyle($('#tabStory'), !ev);
-  if (!ev) renderStory();
+  for (const k in TABS) {
+    $(TABS[k]).classList.toggle('hidden', k !== which);
+    setTabStyle($(TAB_BTNS[k]), k === which);
+  }
+  if (which === 'story') renderStory();
+  if (which === 'things') renderThings();
 }
 // The intro briefing, kept on the evidence board after the modal is dismissed.
 function showCaseBrief() {
@@ -399,8 +431,9 @@ function showCaseBrief() {
   const el = document.createElement('div');
   el.className = 'brief relative bg-paper text-ink px-4 py-3.5 rounded-sm shadow-[0_10px_24px_rgba(0,0,0,.45)] text-xs leading-[1.55] mx-2 mb-[26px] border-l-2 border-[#b8392c]';
   el.innerHTML = `<div class="font-medium tracking-[.08em] mb-2 text-[11px] uppercase text-[#7a5c3e]">CASE BRIEF · LA-0419</div>
-    <div class="font-serif text-[15px] italic mb-2 text-[#3a2c1f]">Subject: Lily Anne, 19. She was in an accident.</div>
-    She can no longer speak in words — only in tones. Listen to her, ask your questions, and record what you believe each tone means in the lexicon. Piece together who she was — and what happened to her.`;
+    <div class="font-serif text-[15px] italic mb-2 text-[#3a2c1f]">Subject: Lily Anne, 19 — student, musician.</div>
+    Second-year computer-science student and composer; a piece of hers, “A Held Breath,” is a finalist for an international prize. Parents divorced; she lives between two homes. Recently single. She is in an accident and can no longer speak in words — only in tones.<br/><br/>
+    Mandate: learn her language, record each tone's meaning in the lexicon, and recover her belongings as they surface. Piece together who she is — and what happened the night of the incident.`;
   host.prepend(el);
 }
 // Shown while waiting for her response — pulsing dots in Lily's voice.
@@ -435,7 +468,8 @@ async function send() {
     await playTones(els);
     addNotes(resp.notes_unlocked);
     if (resp.act_changed) setAct(resp.act);
-    $('#lexCount').textContent = `${resp.tones_seen}/24`;
+    if (resp.total_tones) TOTAL_TONES = resp.total_tones;
+    $('#lexCount').textContent = `${resp.tones_seen}/${TOTAL_TONES}`;
   } catch(e) { thinking.remove(); console.error(e); }
   busy = false; $('#send').disabled = false; ta.focus();
 }
@@ -506,6 +540,7 @@ $('#send').addEventListener('click', send);
 $('#lexBtn').addEventListener('click', openLexicon);
 $('#tabEvidence').addEventListener('click', () => showTab('evidence'));
 $('#tabStory').addEventListener('click', () => showTab('story'));
+$('#tabThings').addEventListener('click', () => showTab('things'));
 $('#lexClose').addEventListener('click', () => $('#drawer').classList.add('-translate-x-full'));
 
 // Threshold modal: dismiss it, and keep the briefing visible on the evidence board.

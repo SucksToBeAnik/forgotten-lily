@@ -89,8 +89,11 @@ def turn(body: TurnIn):
         resp = {"tones": [], "topic_signal": None,
                 "internal_emotion": "release", "special": body.special}
         if body.special == "finale":
-            resp["tones"] = ["self_i", "act_fall", "self_remember", "other_you",
-                             "emo_happy", "other_him", "truth_no", "truth_nothing"]
+            # her last utterance, hand-authored (played in order, uncapped): "I wanted
+            # to reach the world — and us, together — love — let go — the end."
+            resp["tones"] = ["self_i", "act_want", "link_to", "other_world",
+                             "link_and", "other_us", "emo_love", "act_fall",
+                             "truth_nothing"]
     else:
         # Live moderation gate (Phase 6): classify input BEFORE spending a Gemma
         # call. Harmful/off-topic short-circuit to a diegetic response. The mock
@@ -130,6 +133,11 @@ def lexicon(session_id: str):
 @app.get("/api/story")
 def story(session_id: str):
     return game.story_view(_get(session_id))
+
+
+@app.get("/api/artifacts")
+def artifacts(session_id: str):
+    return game.artifacts_view(_get(session_id))
 
 
 @app.post("/api/guess")

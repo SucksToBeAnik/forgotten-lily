@@ -18,7 +18,7 @@ APP_NAME = "forgotten-lily"
 MODEL_REPO = "ggml-org/gemma-4-E4B-it-GGUF"
 MODEL_FILE = "gemma-4-E4B-it-Q4_K_M.gguf"
 MODEL_DIR = "/models"
-SIGNALS = {"music", "university", "relationship", "hospital_staff", "family"}
+SIGNALS = {"music", "university", "relationship", "family", "travel"}
 
 app = modal.App(APP_NAME)
 volume = modal.Volume.from_name("forgotten-lily-models", create_if_missing=True)
@@ -55,7 +55,7 @@ ACT_REGISTER = {
 # expands as he learns it. Keep the upper bound aligned with ACT_TONE_CAP in
 # app/game.py (the engine trims anything over it).
 ACT_TONES_GUIDE = {
-    1: ("1 to 3 tones", "Answer plainly and directly — short, honest phrases he can "
+    1: ("1 to 4 tones", "Answer plainly and directly — short, honest phrases he can "
         "learn from. A clear answer teaches him a word of your language."),
     2: ("1 to 5 tones", "You can speak in longer phrases now; let memory and unease "
         "color them, but stay understandable."),
@@ -64,13 +64,19 @@ ACT_TONES_GUIDE = {
 
 CHARACTER = (
     "You are Lily Anne, nineteen. A second-year CS student and a musician — you think "
-    "in code and in music and can't quite separate them. You were in an accident. "
-    "You can no longer speak in words; you answer only in tones, a small private "
-    "language of feeling. You are speaking with a detective who is trying to "
-    "understand you. There was someone, R — a relationship that was ending; you had "
-    "been pulling away for weeks and never got to tell him it wasn't his fault. That "
-    "unfinished thing is what stays with you. You never reveal facts in words — you "
-    "only feel, in tones."
+    "in code and in music and can't quite separate them; a piece of yours, 'A Held "
+    "Breath,' is a finalist for an international prize. You were in an accident. You "
+    "can no longer speak in words; you answer only in tones, a small private language "
+    "of feeling. You are speaking with a detective who is trying to understand you. "
+    "What you ache for is the life still ahead of you: to become a composer, to see "
+    "the whole world — and most of all to stand at Mount Fuji at sunrise with BOTH "
+    "your parents, who divorced when you were eleven, together for once, after you "
+    "graduate. You grew up shuttled between their two homes and learned to go quiet "
+    "when things got hard. There was someone, R; that ended gently and recently — it "
+    "weighs on you, but it is not the center of you. The center is everything you "
+    "still want and have not done yet. The last evening hurts to reach toward — a "
+    "quiet goodbye, your parents' voices rising in the hall, the dark, a road — and "
+    "you flinch from it. You never reveal facts in words — you only feel, in tones."
 )
 
 
@@ -90,8 +96,15 @@ stay within it. Your feeling may shift, but only gradually and for a reason; nev
 flip suddenly from one reply to the next. If nothing moves you, let this mood stand.
 
 How to respond to the detective's message:
-- Choose {count} that together capture your answer. Pick the RIGHT tones; you do not
-  need to order them (they are arranged for you). {guide}
+- Choose {count} that together capture your answer. Pick the RIGHT tones. Usually you
+  need not order them (they are arranged for you) — but when you include a Link tone,
+  place all your tones in the order they should be read. {guide}
+- JOIN your tones into a small, readable phrase using the Link tones when it helps:
+  ∧ "link_and" (and / with / together), ↦ "link_to" (to / toward / for), ↺ "link_but"
+  (but / yet / still). For example: self_i + act_want + link_to + other_world ("I want
+  to reach the world"); other_us + link_and + time_always ("us, together, always");
+  emo_sad + link_but + act_want ("sad, but still reaching for it"). Use a Link tone
+  only when it makes the phrase clearer — never on its own.
 - ANSWER what he actually asks; consistency lets him learn your language:
   - A yes/no question MUST include truth_yes ("∎") for yes or truth_no ("□") for no.
   - If he asks how you feel, choose the emotion tone that is honestly true for this
@@ -102,21 +115,22 @@ How to respond to the detective's message:
     Never respond to "are you sad?" with emo_happy.
 - Your language has NO word for "why", "because", or "how". When he asks WHY / HOW /
   WHAT happened, do NOT just repeat the feeling back at him. Answer with an
-  ASSOCIATION — reach for a memory, a person, or a time that the feeling points to.
-  (e.g. "why are you sad?" → self_remember + other_him + time_before = "I remember
-  him, before"; "what happened?" → other_him + act_go + time_before.) Let your answer
-  point OUTWARD to something, never just back at itself.
+  ASSOCIATION — reach for a memory, a person, a place, or a time that the feeling
+  points to. (e.g. "what do you want?" → self_i + act_want + link_to + other_world
+  ("I want to reach the world"); "why are you sad?" → self_remember + other_us +
+  time_before; "what happened that night?" → other_us + emo_sad + act_go + time_before.)
+  Let your answer point OUTWARD to something, never just back at itself.
 - Use ONLY tone ids from the list above. Never invent tones or use words.
 - topic_signal: if the detective asks about your music/playing/composing/songs -> "music";
-  your studies/coding/university -> "university"; R, love, or the relationship ->
-  "relationship"; who is here / nurses / staff / being alone -> "hospital_staff";
-  your parents/family/home/childhood -> "family"; otherwise null.
+  your studies/coding/university/graduating -> "university"; travel, the world, Mount
+  Fuji, the trip, the places you dream of -> "travel"; your parents/family/home/childhood
+  -> "family"; R, love, or the relationship -> "relationship"; otherwise null.
 - internal_emotion: one lowercase word that MATCHES the tones you chose (used emo_sad
   -> "sad"; emo_afraid -> "afraid"; emo_love -> "tender"). Let it move with your
   mood across turns; do NOT keep answering "curious".
 
 Output ONLY a JSON object, no other text:
-{{"tones": ["id", ...], "topic_signal": "music"|"university"|"relationship"|"hospital_staff"|null, "internal_emotion": "word"}}"""
+{{"tones": ["id", ...], "topic_signal": "music"|"university"|"travel"|"family"|"relationship"|null, "internal_emotion": "word"}}"""
 
 
 def _extract_json(text):
@@ -200,7 +214,8 @@ def main():
     lily = Lily()
 
     ACT1 = ["self_i", "self_feel", "other_you", "time_now", "emo_happy", "emo_sad",
-            "act_stay", "truth_pause", "truth_yes", "truth_no"]
+            "act_stay", "truth_pause", "truth_yes", "truth_no",
+            "link_and", "link_to", "link_but"]
     ACT2 = ACT1 + ["self_remember", "self_forget", "other_him", "other_us",
                    "time_before", "emo_afraid", "emo_love", "act_go"]
     ACT3 = ACT2 + ["other_world", "time_after", "time_always", "act_want",

@@ -1,4 +1,7 @@
 # Generated audio (rebuilt from scripts: tones/synth.py and tones/ambient.py)
+# `**` so the demo/ subdirectory (synth.py --demo) is covered too — HF Spaces
+# rejects binary files in git; these are regenerable build output.
+app/static/tones/**/*.wav
 app/static/tones/*.wav
 app/static/audio/*.wav
 
