@@ -131,7 +131,7 @@
 
     <!-- Conversation -->
     <section class="flex flex-col px-[30px] pt-[22px] pb-4 min-h-0">
-      <div id="preamble" class="font-serif text-[19px] italic text-muted leading-[1.5] mb-5 max-w-[60ch]">*She can't speak. The doctors say it may be trauma-related. She responds to presence and makes melodies in response. I've been asked to try and figure if her melodies mean anything.*</div>
+      <div id="preamble" class="font-serif text-[19px] italic text-muted leading-[1.5] mb-5 max-w-[60ch]">*Lily has forgotten how to speak. She only speaks in melodies now. Kepp conversing with Lily to understand what really happened to her.*</div>
       <div id="log" class="flex-1 overflow-y-auto pr-2 flex flex-col gap-[18px]"></div>
       <div class="mt-3.5">
         <div class="flex gap-2.5 items-end">
@@ -149,6 +149,16 @@
   <!-- Low ambient piano bed (PLAN 6.5). Looped, very quiet; started on BEGIN (a user
        gesture) to satisfy autoplay policies, and ducked while her tones sound. -->
   <audio id="ambient" src="/static/audio/ambient.wav" loop preload="auto"></audio>
+
+  <!-- Lily's single spoken line, pre-rendered (PLAN 7.3 ending). Played once, after the
+       finale tones fade to white. -->
+  <audio id="finalVoice" src="/static/audio/lily_final.wav" preload="auto"></audio>
+
+  <!-- Ending: a slow fade to white, then the memorial (her name + the words you learned
+       with her). Covers everything; no replay. -->
+  <div id="ending" class="fixed inset-0 z-[80] bg-white opacity-0 pointer-events-none transition-opacity duration-[5000ms] flex items-center justify-center overflow-y-auto">
+    <div id="memorial" class="opacity-0 transition-opacity duration-[3000ms] max-w-[640px] w-full text-center px-8 py-16 text-[#1a1a1a]"></div>
+  </div>
 
   <!-- A dim glow that trails the cursor — soft "lamp" light, re-themed per act via --glow. -->
   <div id="cursorGlow" class="pointer-events-none fixed left-0 top-0 z-[45] w-[240px] h-[240px] rounded-full opacity-0 transition-opacity duration-700"
@@ -403,6 +413,8 @@ function addNotes(notes) {
   });
   renderStory();   // a new note rewrites Her Story (and updates the tab count)
   renderThings();  // ...and brings back the object behind it
+  // The incident report (N10) is the reveal — it triggers the ending sequence.
+  if (notes.some(n => n.id === 'N10')) runEnding();
 }
 
 // --- Her Story tab: a narrative assembled from found-evidence summaries ----------
@@ -481,6 +493,83 @@ function addThinking() {
 }
 function seededRot(id){ let h=0; for(const ch of id) h=(h*31+ch.charCodeAt(0))%97; return (h%5)-2.2; }
 function scrollLog(){ const l=$('#log'); l.scrollTop=l.scrollHeight; }
+
+// --- ending sequence (PLAN 7.3) ----------------------------------------------
+// Fires once the incident report (N10) surfaces: a beat to read the reveal, then her
+// hand-authored last phrase, a slow fade to white, her one spoken line, silence, and a
+// memorial of her name + the words the player learned with her. No score, no replay.
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let endingStarted = false;
+
+async function runEnding() {
+  if (endingStarted) return;            // guard: N10 only reveals once
+  endingStarted = true;
+  busy = true; $('#send').disabled = true; $('#input').disabled = true;
+
+  await sleep(5500);                    // let the reveal land
+
+  // her last words — the server's hand-authored, uncapped finale sequence
+  try {
+    const resp = await api('/api/turn', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: session, message: '', special: 'finale' }),
+    });
+    const els = addLily(resp);
+    await playTones(els);
+  } catch (e) { console.error('finale tones failed', e); }
+
+  await sleep(1600);
+
+  // slow fade to white; the bed fades out under it
+  ambientTo(0, 4500);
+  const end = $('#ending');
+  end.classList.remove('opacity-0', 'pointer-events-none');
+  $('#cursorGlow').style.opacity = '0';
+  await sleep(5200);                    // matches the 5s fade
+
+  // her voice — the one time words come through
+  const v = $('#finalVoice');
+  try { v.volume = 1; await v.play(); await voiceEnded(v, 11000); }
+  catch (e) { await sleep(4500); }      // autoplay blocked or missing -> hold a beat
+
+  await sleep(3000);                    // silence
+  await renderMemorial();
+}
+
+// Resolve when the audio finishes, or after a safety timeout if 'ended' never fires.
+function voiceEnded(audio, maxMs) {
+  return new Promise(resolve => {
+    let done = false;
+    const fin = () => { if (!done) { done = true; resolve(); } };
+    audio.addEventListener('ended', fin, { once: true });
+    setTimeout(fin, maxMs);
+  });
+}
+
+async function renderMemorial() {
+  let entries = [];
+  try { entries = (await api('/api/lexicon?session_id=' + session)).entries || []; } catch (e) {}
+  // the words she taught you: every heard tone, with the meaning you recorded
+  const heard = entries.filter(e => !e.locked);
+  const cells = heard.map(e => `
+    <div class="flex flex-col items-center gap-1 w-[78px]">
+      <div class="text-[24px] leading-none">${e.glyph}</div>
+      <div class="text-[11px] leading-tight text-[#5a5a5a]">${e.guess ? esc(e.guess) : '—'}</div>
+    </div>`).join('');
+
+  $('#memorial').innerHTML = `
+    <div class="font-serif text-[15px] italic text-[#6a6a6a] mb-10">she wanted to see the world</div>
+    <div class="font-serif text-[44px] leading-tight text-[#1a1a1a]">Lily Anne</div>
+    <div class="font-mono text-[12px] tracking-[.3em] text-[#8a8a8a] mt-2 mb-1">NINETEEN</div>
+    <div class="font-serif text-[19px] italic text-[#3a3a3a] mt-8 mb-12 leading-relaxed">
+      “I just wanted to see the world —<br/>all three of us, watching the sun come up.”
+    </div>
+    ${heard.length ? `
+      <div class="font-mono text-[10px] tracking-[.28em] text-[#9a9a9a] mb-6">THE WORDS YOU LEARNED WITH HER</div>
+      <div class="flex flex-wrap justify-center gap-x-3 gap-y-6">${cells}</div>` : ''}`;
+
+  $('#memorial').classList.remove('opacity-0');
+}
 
 async function send() {
   const ta = $('#input'); const text = ta.value.trim();

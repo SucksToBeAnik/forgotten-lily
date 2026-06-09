@@ -223,16 +223,19 @@ def apply_turn(state, inference_response, message=""):
         state["empathy"] += 1
 
     cap = ACT_TONE_CAP.get(state["act"], 7)
-    chosen = [tid for tid in inference_response.get("tones", []) if tid in active]
-    # the finale is a hand-authored sequence (PLAN 4.4) — play it in full, uncapped.
-    tones = chosen if inference_response.get("special") == "finale" else chosen[:cap]
-    if not tones:  # never break character; a safe in-character "drift"
-        tones = [tid for tid in ("self_remember", "truth_pause") if tid in active] or [ACT1_TONES[0]]
-    # render in Lily's grammar so the phrase reads coherently; the finale keeps
-    # its hand-authored order (PLAN 4.4). When she reaches for a connective she is
-    # composing a real phrase — trust her ordering then rather than regrouping it.
-    if inference_response.get("special") != "finale" and not (set(tones) & LINK_TONES):
-        tones = _order_tones(tones)
+    raw = inference_response.get("tones", [])
+    if inference_response.get("special") == "finale":
+        # the finale is a hand-authored sequence (PLAN 4.4): play it in full — uncapped,
+        # in the authored order, and never trimmed by act-gating or grammar reordering.
+        tones = list(raw)
+    else:
+        tones = [tid for tid in raw if tid in active][:cap]
+        if not tones:  # never break character; a safe in-character "drift"
+            tones = [tid for tid in ("self_remember", "truth_pause") if tid in active] or [ACT1_TONES[0]]
+        # render in Lily's grammar so the phrase reads coherently. When she reaches for a
+        # connective she is composing a real phrase — trust her ordering then.
+        if not (set(tones) & LINK_TONES):
+            tones = _order_tones(tones)
 
     tone_ctxs = state.setdefault("tone_contexts", {})
     for tid in tones:
