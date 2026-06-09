@@ -8,7 +8,21 @@ sdk_version: 5.49.1
 python_version: "3.12"
 app_file: app.py
 pinned: false
+license: mit
 short_description: A mystery told in tones. Learn her language.
+tags:
+  - build-small-hackathon
+  - thousand-token-wood
+  - tiny-titan
+  - off-brand
+  - llama-champion
+  - nemotron
+  - modal
+  - sharing-is-caring
+  - field-notes
+  - best-demo
+  - gradio
+  - small-models
 ---
 
 # Forgotten Lily
@@ -24,6 +38,12 @@ resolve, so does what happened to her.
 > Built for the Hugging Face **Build Small** hackathon — *Thousand Token Wood*.
 > Every model in it is tiny, runs on a single T4, and is asked to do one narrow
 > thing extremely well.
+
+## 🎬 Demo & links
+
+- **Watch the demo:** https://youtu.be/kTx6NHeEJ9E
+- **Launch post (the story behind it):** [LinkedIn](https://www.linkedin.com/posts/al-jami-islam-anik-485758285_buildsmallhackathon-huggingface-gradio-ugcPost-7470224344246493184-1BPC/)
+- **Play it:** [open the Space](https://huggingface.co/spaces/build-small-hackathon/forgotten-lily) · headphones recommended.
 
 ---
 
