@@ -24,11 +24,17 @@ volume = modal.Volume.from_name("forgotten-lily-models", create_if_missing=True)
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
+    .apt_install("libgomp1")            # OpenMP runtime torch links against
+    # PINNED — unpinned installs drift (a fresh build pulled numpy 2.x, which broke
+    # torch's import: "transformers: PyTorch not found"). This is a known-compatible
+    # set; bump deliberately, and re-run `modal run modal_app/nemotron.py` before
+    # redeploying the live app so a bad bump never breaks production scoring.
     .pip_install(
-        "torch",
-        "transformers",
-        "accelerate",
-        "huggingface_hub[hf_transfer]",
+        "numpy<2",
+        "torch==2.4.1",
+        "transformers==4.46.3",
+        "accelerate==1.1.1",
+        "huggingface_hub[hf_transfer]==0.26.2",
     )
     .env({"HF_HUB_ENABLE_HF_TRANSFER": "1"})
     # tones.json travels with the image so scoring can look up each tone's true
