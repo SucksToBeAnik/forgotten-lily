@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from app import game
+from app import trace_logger
 from app.game import active_tone_ids
 from app.inference import infer
 
@@ -84,6 +85,7 @@ def new_game():
 def turn(body: TurnIn):
     st = _get(body.session_id)
     msg = (body.message or "")[:280]  # enforce 280-char cap server-side too
+    verdict = "special" if body.special else "normal"  # trace label
     if body.special:  # server-forced beat (finale); skip the model
         resp = {"tones": [], "topic_signal": None,
                 "internal_emotion": "release", "special": body.special}
@@ -109,7 +111,9 @@ def turn(body: TurnIn):
                 "active_tones": active_tone_ids(st["act"]),
                 "lexicon_state": {k: v["guess"] for k, v in st["lexicon"].items()},
             })
-    return game.apply_turn(st, resp, msg)
+    result = game.apply_turn(st, resp, msg)
+    trace_logger.log_turn(st["session_id"], result, msg, verdict)  # anonymous, best-effort
+    return result
 
 
 @app.get("/api/state")
