@@ -124,6 +124,17 @@ def active_tone_ids(act):
     return [t["id"] for t in TONES["tones"] if t["act_active"] <= act]
 
 
+def _coverage_order(act):
+    """The order in which we reveal any active tones the player hasn't heard yet:
+    gentler/common tones first, the final-feeling ∅ (truth_nothing) held for last so
+    'nothing / the end' is the last word she teaches — right before the ending."""
+    ids = active_tone_ids(act)
+    ids.sort(key=lambda t: (TONE_BY_ID[t]["act_active"],
+                            t == "truth_nothing",
+                            GRAMMAR_ORDER.get(t, 50)))
+    return ids
+
+
 def tones_seen(state):
     return list(state["tones_seen_count"].keys())
 
@@ -150,15 +161,21 @@ def _maybe_advance_act(state):
     """Forward-only act transitions (STATE.md). Returns True if act changed."""
     act = state["act"]
     seen = state["tones_seen_count"]
+    turn = state["turn"]
     if act == 1:
-        # tolerate a couple of rarely-used tones so adding Act I vocabulary
-        # doesn't stall progression (was: every Act I tone seen twice).
-        seen_twice = sum(1 for tid in ACT1_CONTENT if seen.get(tid, 0) >= 2)
-        if lexicon_size(state) >= 5 and seen_twice >= max(5, len(ACT1_CONTENT) - 3):
+        # coverage guarantees each Act I content tone is heard at least once; tolerate
+        # one straggler. Advance when the player has decoded a few (the intended gate),
+        # OR — as a safety net so no one stalls — after enough turns regardless.
+        heard = sum(1 for tid in ACT1_CONTENT if seen.get(tid, 0) >= 1)
+        enough_vocab = heard >= len(ACT1_CONTENT) - 1
+        if enough_vocab and (lexicon_size(state) >= 5 or turn >= 14):
             state["act"] = 2
             return True
     elif act == 2:
-        if len(seen) >= 18 and "N07" in state["notes_unlocked"]:
+        # coverage drives `seen` toward the full Act II set (21 tones). Advance on the
+        # intended gate (wide vocabulary + the travel-fund note), OR via the turn valve.
+        wide = len(seen) >= 18
+        if wide and ("N07" in state["notes_unlocked"] or turn >= 28):
             state["act"] = 3
             return True
     return False
@@ -236,6 +253,19 @@ def apply_turn(state, inference_response, message=""):
         # connective she is composing a real phrase — trust her ordering then.
         if not (set(tones) & LINK_TONES):
             tones = _order_tones(tones)
+
+        # GUARANTEED COVERAGE — the reachability backbone. Progression gates key off
+        # tones SEEN (Act II→III needs ≥18; the ending's N10 needs all 27), but the
+        # model alone may never emit some tones. So if this turn revealed nothing new
+        # and unseen active tones remain, she surfaces one — gradually teaching her
+        # whole vocabulary. This makes the ending reachable no matter what the model says.
+        seen = state["tones_seen_count"]
+        if not any(t not in seen for t in tones):
+            unseen = [t for t in _coverage_order(state["act"]) if t not in seen and t not in tones]
+            if unseen:
+                tones = tones + [unseen[0]]
+                if not (set(tones) & LINK_TONES):
+                    tones = _order_tones(tones)
 
     tone_ctxs = state.setdefault("tone_contexts", {})
     for tid in tones:
