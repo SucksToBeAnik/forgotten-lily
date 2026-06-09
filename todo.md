@@ -145,10 +145,16 @@ its app name distinct from Gemma's `forgotten-lily` or deploys clobber each othe
   - (Confidence still from the token-overlap mock until 5.2 lands.)
 
 ## Phase 6 — Moderation + Input Edge Cases
-- [ ] **6.1** Nemotron dual-role: harmful input → Lily plays `∅`, journal line *"She doesn't respond to that."* (PLAN §8.2).
-  - DoD: harmful input never errors, never breaks fiction.
-- [ ] **6.2** Off-topic input → `◇ —`, journal *"She seems to have drifted somewhere."* (§8.3).
-  - DoD: irrelevant input handled diegetically.
+- [x] **6.1** Nemotron dual-role: harmful input → Lily plays `∅`, journal line *"She doesn't respond to that."* (PLAN §8.2).
+  - DoD: harmful input never errors, never breaks fiction. ✓
+- [x] **6.2** Off-topic input → `◇ —`, journal *"She seems to have drifted somewhere."* (§8.3).
+  - DoD: irrelevant input handled diegetically. ✓
+  - **Wiring (done):** live gate in `server.py /api/turn` — `_moderate()` calls Nemotron
+    `moderate` BEFORE the Gemma call; harmful/off_topic short-circuit to `_MODERATED`
+    diegetic responses (mirrors the mock's tones/emotion so live==offline). Resilient:
+    any Nemotron error → "normal" (turn never breaks). Mock path already moderates inside
+    its own `infer()`, so the gate only fires when `USE_MOCK=0`. Frontend already renders
+    `journal_line`. Verified live: harmful/off_topic/normal classified correctly.
 
 ## Phase 7 — Atmosphere + Ending
 - [x] ~~**7.1** Background ambient piano + duck during tones~~ — **REMOVED by design**

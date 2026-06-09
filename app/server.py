@@ -37,6 +37,31 @@ def _get(session_id: str) -> dict:
     return st
 
 
+# Diegetic responses for moderated input (PLAN 8.2/8.3). These mirror the mock's
+# choices in app/mock_inference.py so live and offline play behave identically:
+# harmful -> she withdraws (∅ + "silent"); off-topic -> she drifts (— + "drift").
+# Tones are filtered to the active set in game.apply_turn, so passing ones not yet
+# unlocked is safe (early acts fall back to a quiet in-character tone).
+_MODERATED = {
+    "harmful":   {"tones": ["truth_nothing"], "topic_signal": None,
+                  "internal_emotion": "absent", "special": "silent"},
+    "off_topic": {"tones": ["self_remember", "truth_pause"], "topic_signal": None,
+                  "internal_emotion": "withdrawn", "special": "drift"},
+}
+
+
+def _moderate(message: str) -> str:
+    """Classify player input via Nemotron (live only — the mock moderates inside
+    its own infer()). Returns 'normal' on any failure so a moderation hiccup never
+    breaks a turn or the fiction."""
+    try:
+        from app.nemotron_inference import moderate
+        return moderate(message)
+    except Exception as exc:  # pragma: no cover - resilience guard
+        print(f"\033[33m[moderate] failed, treating as normal:\033[0m {exc}")
+        return "normal"
+
+
 class TurnIn(BaseModel):
     session_id: str
     message: str = ""
@@ -67,15 +92,22 @@ def turn(body: TurnIn):
             resp["tones"] = ["self_i", "act_fall", "self_remember", "other_you",
                              "emo_happy", "other_him", "truth_no", "truth_nothing"]
     else:
-        resp = infer({
-            "session_id": st["session_id"],
-            "message": msg,
-            "turn": st["turn"],
-            "act": st["act"],
-            "mood": st.get("mood", "warm"),  # carried emotional state, colors the reply
-            "active_tones": active_tone_ids(st["act"]),
-            "lexicon_state": {k: v["guess"] for k, v in st["lexicon"].items()},
-        })
+        # Live moderation gate (Phase 6): classify input BEFORE spending a Gemma
+        # call. Harmful/off-topic short-circuit to a diegetic response. The mock
+        # path already moderates inside its own infer(), so only gate when live.
+        verdict = _moderate(msg) if (not USE_MOCK and msg.strip()) else "normal"
+        if verdict in _MODERATED:
+            resp = dict(_MODERATED[verdict])
+        else:
+            resp = infer({
+                "session_id": st["session_id"],
+                "message": msg,
+                "turn": st["turn"],
+                "act": st["act"],
+                "mood": st.get("mood", "warm"),  # carried emotional state, colors the reply
+                "active_tones": active_tone_ids(st["act"]),
+                "lexicon_state": {k: v["guess"] for k, v in st["lexicon"].items()},
+            })
     return game.apply_turn(st, resp, msg)
 
 
