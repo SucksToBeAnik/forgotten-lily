@@ -151,13 +151,14 @@
   <audio id="ambient" src="/static/audio/ambient.wav" loop preload="auto"></audio>
 
   <!-- Lily's single spoken line, pre-rendered (PLAN 7.3 ending). Played once, after the
-       finale tones fade to white. -->
+       finale tones fade out. -->
   <audio id="finalVoice" src="/static/audio/lily_final.wav" preload="auto"></audio>
 
-  <!-- Ending: a slow fade to white, then the memorial (her name + the words you learned
-       with her). Covers everything; no replay. -->
-  <div id="ending" class="fixed inset-0 z-[80] bg-white opacity-0 pointer-events-none transition-opacity duration-[5000ms] flex items-center justify-center overflow-y-auto">
-    <div id="memorial" class="opacity-0 transition-opacity duration-[3000ms] max-w-[640px] w-full text-center px-8 py-16 text-[#1a1a1a]"></div>
+  <!-- Ending: a slow fade into warm dark (matching the app, not a stark white), then the
+       memorial (her name + the words you learned with her). Covers everything; no replay. -->
+  <div id="ending" class="fixed inset-0 z-[80] opacity-0 pointer-events-none transition-opacity duration-[5000ms] flex items-center justify-center overflow-y-auto"
+       style="background:radial-gradient(125% 100% at 50% 22%, #221a13 0%, #14100c 45%, #0b0907 100%);">
+    <div id="memorial" class="opacity-0 transition-opacity duration-[3000ms] max-w-[640px] w-full text-center px-8 py-16"></div>
   </div>
 
   <!-- A dim glow that trails the cursor — soft "lamp" light, re-themed per act via --glow. -->
@@ -520,7 +521,7 @@ async function runEnding() {
 
   await sleep(1600);
 
-  // slow fade to white; the bed fades out under it
+  // slow fade into warm dark; the bed fades out under it
   ambientTo(0, 4500);
   const end = $('#ending');
   end.classList.remove('opacity-0', 'pointer-events-none');
@@ -553,19 +554,19 @@ async function renderMemorial() {
   const heard = entries.filter(e => !e.locked);
   const cells = heard.map(e => `
     <div class="flex flex-col items-center gap-1 w-[78px]">
-      <div class="text-[24px] leading-none">${e.glyph}</div>
-      <div class="text-[11px] leading-tight text-[#5a5a5a]">${e.guess ? esc(e.guess) : '—'}</div>
+      <div class="text-[24px] leading-none text-[#e7d8bf]">${e.glyph}</div>
+      <div class="text-[11px] leading-tight text-[#8f8170]">${e.guess ? esc(e.guess) : '—'}</div>
     </div>`).join('');
 
   $('#memorial').innerHTML = `
-    <div class="font-serif text-[15px] italic text-[#6a6a6a] mb-10">she wanted to see the world</div>
-    <div class="font-serif text-[44px] leading-tight text-[#1a1a1a]">Lily Anne</div>
-    <div class="font-mono text-[12px] tracking-[.3em] text-[#8a8a8a] mt-2 mb-1">NINETEEN</div>
-    <div class="font-serif text-[19px] italic text-[#3a3a3a] mt-8 mb-12 leading-relaxed">
+    <div class="font-serif text-[15px] italic text-[#a78f6d] mb-10">she wanted to see the world</div>
+    <div class="font-serif text-[46px] leading-tight text-[#efe6d4]">Lily Anne</div>
+    <div class="font-mono text-[12px] tracking-[.3em] text-[#8a7a64] mt-2 mb-1">NINETEEN</div>
+    <div class="font-serif text-[20px] italic text-[#d8a36b] mt-8 mb-12 leading-relaxed">
       “I just wanted to see the world —<br/>all three of us, watching the sun come up.”
     </div>
     ${heard.length ? `
-      <div class="font-mono text-[10px] tracking-[.28em] text-[#9a9a9a] mb-6">THE WORDS YOU LEARNED WITH HER</div>
+      <div class="font-mono text-[10px] tracking-[.28em] text-[#7d6e5a] mb-6">THE WORDS YOU LEARNED WITH HER</div>
       <div class="flex flex-wrap justify-center gap-x-3 gap-y-6">${cells}</div>` : ''}`;
 
   $('#memorial').classList.remove('opacity-0');

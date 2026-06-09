@@ -19,12 +19,19 @@ image = (
     .pip_install("kokoro>=0.9.2", "soundfile", "numpy", "torch")
 )
 
-# Phrased for natural pacing: short sentences, no em-dash (TTS reads punctuation).
-LINE = "I just wanted to see the world. All three of us. Watching the sun come up."
+# One sentence per line -> the pipeline yields a chunk per line and we insert a real
+# breath between them, so it lands as a slow, reflective last thought rather than a
+# read-aloud. Slow `speed` makes each phrase deliberate. (Kokoro is a neutral TTS, so
+# the "emotion" comes from pacing + the pauses, not a happy/sad style knob.)
+LINE = (
+    "I just wanted to see the world.\n"
+    "All three of us.\n"
+    "Watching the sun come up."
+)
 
 
 @app.function(image=image, timeout=900)
-def synth(text: str = LINE, voice: str = "af_heart", speed: float = 0.92) -> bytes:
+def synth(text: str = LINE, voice: str = "af_bella", speed: float = 0.78, gap_s: float = 0.55) -> bytes:
     import io
 
     import numpy as np
@@ -32,11 +39,12 @@ def synth(text: str = LINE, voice: str = "af_heart", speed: float = 0.92) -> byt
     from kokoro import KPipeline
 
     pipe = KPipeline(lang_code="a")  # American English
-    parts = []
-    for _, _, audio in pipe(text, voice=voice, speed=speed):
-        arr = audio.detach().cpu().numpy() if hasattr(audio, "detach") else np.asarray(audio)
-        parts.append(arr.astype(np.float32))
-        parts.append(np.zeros(int(0.18 * 24000), dtype=np.float32))  # tiny breath between phrases
+    parts = [np.zeros(int(0.25 * 24000), dtype=np.float32)]  # a breath before she speaks
+    for line in [ln for ln in text.split("\n") if ln.strip()]:
+        for _, _, audio in pipe(line, voice=voice, speed=speed):
+            arr = audio.detach().cpu().numpy() if hasattr(audio, "detach") else np.asarray(audio)
+            parts.append(arr.astype(np.float32))
+        parts.append(np.zeros(int(gap_s * 24000), dtype=np.float32))  # reflective pause between phrases
     wav = np.concatenate(parts) if parts else np.zeros(1, dtype=np.float32)
     buf = io.BytesIO()
     sf.write(buf, wav, 24000, format="WAV", subtype="PCM_16")
@@ -44,9 +52,9 @@ def synth(text: str = LINE, voice: str = "af_heart", speed: float = 0.92) -> byt
 
 
 @app.local_entrypoint()
-def main(voice: str = "af_heart", speed: float = 0.92):
-    data = synth.remote(voice=voice, speed=speed)
+def main(voice: str = "af_bella", speed: float = 0.78, gap_s: float = 0.55):
+    data = synth.remote(voice=voice, speed=speed, gap_s=gap_s)
     out = "app/static/audio/lily_final.wav"
     with open(out, "wb") as f:
         f.write(data)
-    print(f"wrote {len(data)} bytes -> {out}  (voice={voice}, speed={speed})")
+    print(f"wrote {len(data)} bytes -> {out}  (voice={voice}, speed={speed}, gap={gap_s}s)")
