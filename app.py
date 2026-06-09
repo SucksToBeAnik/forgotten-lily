@@ -10,7 +10,18 @@ Local:   .venv/bin/python app.py         (or: uvicorn app:app --port 7860)
 Game UI:  http://localhost:7860/
 Gradio:   http://localhost:7860/engine   (mounted Blocks — control/diagnostics)
 """
+import os
+
 import gradio as gr
+
+# Tone WAVs are generated build output (gitignored), so a fresh clone — including
+# the HF Space — has none. Render them on startup if missing so audio always works.
+_TONES_DIR = os.path.join(os.path.dirname(__file__), "app", "static", "tones")
+if not os.path.exists(os.path.join(_TONES_DIR, "self_i.wav")):
+    print("[startup] tone WAVs missing — generating with tones/synth.py …")
+    from tones import synth
+
+    synth.main()
 
 from app.server import app  # FastAPI: /api/*, /static, "/" -> custom frontend
 

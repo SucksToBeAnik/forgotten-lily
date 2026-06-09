@@ -1,3 +1,15 @@
+---
+title: Forgotten Lily
+emoji: 🥀
+colorFrom: gray
+colorTo: indigo
+sdk: gradio
+sdk_version: 4.44.0
+app_file: app.py
+pinned: false
+short_description: A mystery told in tones. Learn her language. Find out what happened.
+---
+
 # Forgotten Lily
 
 A narrative mystery game disguised as a conversation. You are a detective. Across
