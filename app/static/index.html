@@ -113,8 +113,8 @@
     <section class="flex flex-col overflow-hidden border-r border-white/[.06]">
       <div class="flex gap-1 px-[22px] pt-[18px] border-b border-white/[.06]">
         <button id="tabEvidence" class="tab text-[11px] tracking-[.16em] px-3 py-2 border-b-2 border-accent text-paper">EVIDENCE</button>
-        <button id="tabStory" class="tab text-[11px] tracking-[.16em] px-3 py-2 border-b-2 border-transparent text-muted transition hover:text-paper">HER STORY <span id="storyCount" class="opacity-60"></span></button>
-        <button id="tabThings" class="tab text-[11px] tracking-[.16em] px-3 py-2 border-b-2 border-transparent text-muted transition hover:text-paper">HER THINGS <span id="thingsCount" class="opacity-60"></span></button>
+        <button id="tabStory" class="tab text-[11px] tracking-[.16em] px-3 py-2 border-b-2 border-transparent text-muted transition hover:text-paper">HER STORY <span id="storyCount" class="opacity-60"></span><span id="storyNew" class="hidden ml-1 inline-block w-1.5 h-1.5 rounded-full bg-accent align-middle"></span></button>
+        <button id="tabThings" class="tab text-[11px] tracking-[.16em] px-3 py-2 border-b-2 border-transparent text-muted transition hover:text-paper">HER THINGS <span id="thingsCount" class="opacity-60"></span><span id="thingsNew" class="hidden ml-1 inline-block w-1.5 h-1.5 rounded-full bg-accent align-middle"></span></button>
       </div>
       <div id="paneEvidence" class="flex-1 overflow-y-auto p-[22px]">
         <div id="notes"><div class="empty font-serif text-base italic text-muted opacity-60">Nothing has surfaced yet.</div></div>
@@ -342,9 +342,9 @@ function makeChip(t, isNew) {
     setTimeout(() => c.classList.remove('is-new'), 4500);
   }
   applyGuessToChip(c);          // category always; the player's guess once made
-  // double-click a glyph -> open the lexicon and drop the cursor straight onto its row
-  c.title = 'double-click to record what it means';
-  c.addEventListener('dblclick', e => { e.preventDefault(); openLexicon(c.dataset.toneId); });
+  // click a glyph -> open the lexicon and drop the cursor straight onto its row
+  c.title = 'click to record what it means';
+  c.addEventListener('click', e => { e.preventDefault(); openLexicon(c.dataset.toneId); });
   c.addEventListener('mouseenter', () => positionTip(c));  // flip tip below near the top
   return c;
 }
@@ -414,13 +414,16 @@ function makePromptChip(q) {
   b.type = 'button';
   b.className = 'text-left text-[11px] leading-snug text-[#5c4326] bg-[#e9ddc6] hover:bg-[#dccba6] border border-[#cbb489] rounded px-2 py-1 transition cursor-pointer';
   b.textContent = q;
-  b.addEventListener('click', () => fillInput(q));
+  b.addEventListener('click', () => askQuestion(q));
   return b;
 }
-function fillInput(text) {
+// Tapping a suggested question asks it straight away (no edit step). Ignored while a
+// turn is in flight so a stray tap can't queue a second request.
+function askQuestion(text) {
+  if (busy) return;
   const ta = $('#input');
-  ta.value = text; updateCount(); ta.focus();
-  try { ta.setSelectionRange(text.length, text.length); } catch (_) {}
+  ta.value = text; updateCount();
+  send();
 }
 
 // "Her trust" meter — caring/personal questions fill it; each full bar surfaces a
@@ -450,6 +453,7 @@ function addNotes(notes) {
   if (!notes.length) return;
   const host = $('#notes');
   host.querySelector('.empty')?.remove();
+  let firstEl = null;
   notes.forEach(n => {
     const el = document.createElement('div');
     el.className = 'note relative bg-paper text-ink px-4 py-3.5 rounded-sm shadow-[0_10px_24px_rgba(0,0,0,.45)] whitespace-pre-wrap text-xs leading-[1.5] just-pinned'
@@ -485,12 +489,29 @@ function addNotes(notes) {
     setTimeout(() => badge.classList.add('opacity-0'), 3200);
     setTimeout(() => badge.remove(), 4000);
     host.appendChild(el);
+    if (!firstEl) firstEl = el;
     showToast(`${noteIcon(n.asset)} New evidence — ${esc(n.title)}`);
   });
-  renderStory();   // a new note rewrites Her Story (and updates the tab count)
+  // bring the new evidence into view (only when the evidence board is the open tab —
+  // otherwise the tab's NEW badge signals it instead)
+  if (firstEl && !$('#paneEvidence').classList.contains('hidden')) {
+    setTimeout(() => firstEl.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
+  }
+  renderStory();   // a new note rewrites Her Story (and badges the tab if unseen)
   renderThings();  // ...and brings back the object behind it
   // The incident report (N10) is the reveal — it triggers the ending sequence.
   if (notes.some(n => n.id === 'N10')) runEnding();
+}
+
+// NEW-badge bookkeeping for the side tabs: how many items the player has actually
+// seen (by having that tab open). A render with more items than that, while the tab
+// is closed, lights its dot; opening the tab marks everything seen and clears it.
+const viewed = { story: 0, things: 0 };
+const PANE = { story: '#paneStory', things: '#paneThings' };
+function markTabSeenIfOpen(tab, count) {
+  const open = !$(PANE[tab]).classList.contains('hidden');
+  if (open) { viewed[tab] = count; $('#' + tab + 'New').classList.add('hidden'); }
+  else if (count > viewed[tab]) $('#' + tab + 'New').classList.remove('hidden');
 }
 
 // --- Her Story tab: a narrative assembled from found-evidence summaries ----------
@@ -498,6 +519,7 @@ async function renderStory() {
   if (!session) return;
   const v = await api('/api/story?session_id=' + session);
   $('#storyCount').textContent = v.found ? `(${v.found}/${v.total})` : '';
+  markTabSeenIfOpen('story', v.fragments.length);
   const host = $('#story');
   if (!v.fragments.length) {
     host.innerHTML = '<div class="font-serif text-base italic text-muted opacity-60">Her story is still blank. Find evidence to begin writing it.</div>';
@@ -511,6 +533,7 @@ async function renderThings() {
   if (!session) return;
   const v = await api('/api/artifacts?session_id=' + session);
   $('#thingsCount').textContent = v.found ? `(${v.found}/${v.total})` : '';
+  markTabSeenIfOpen('things', v.items.length);
   const host = $('#things');
   if (!v.items.length) {
     host.innerHTML = '<div class="font-serif text-base italic text-muted opacity-60">Her things are still boxed away. Each piece of evidence brings one back.</div>';
