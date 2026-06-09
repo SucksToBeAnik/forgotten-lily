@@ -146,6 +146,14 @@
     </section>
   </div>
 
+  <!-- Low ambient piano bed (PLAN 6.5). Looped, very quiet; started on BEGIN (a user
+       gesture) to satisfy autoplay policies, and ducked while her tones sound. -->
+  <audio id="ambient" src="/static/audio/ambient.wav" loop preload="auto"></audio>
+
+  <!-- A dim glow that trails the cursor — soft "lamp" light, re-themed per act via --glow. -->
+  <div id="cursorGlow" class="pointer-events-none fixed left-0 top-0 z-[45] w-[320px] h-[320px] rounded-full opacity-0 transition-opacity duration-700"
+       style="background:radial-gradient(circle, var(--glow), transparent 65%); mix-blend-mode:screen; will-change:transform;"></div>
+
   <!-- Click-catcher behind the drawer: tapping the rest of the screen closes it. -->
   <div id="backdrop" class="fixed inset-0 z-20 bg-black/30 opacity-0 pointer-events-none transition-opacity duration-500"></div>
 
@@ -214,7 +222,27 @@ function noteIcon(asset) {
   return '📄';
 }
 
-// Ambient background music removed per design — only the tones make sound now.
+// --- ambient bed -------------------------------------------------------------
+// A very low looping piano bed. Browsers block autoplay until a user gesture, so
+// it's kicked off from BEGIN. It ducks down while her tones play so the melody
+// reads clearly, then eases back up.
+const AMBIENT_VOL = 0.11, AMBIENT_DUCK = 0.035;
+let _ambTimer = null;
+function ambientTo(target, ms = 700) {
+  const a = $('#ambient'); if (!a) return;
+  clearInterval(_ambTimer);
+  const from = a.volume, t0 = performance.now();
+  _ambTimer = setInterval(() => {
+    const k = Math.min(1, (performance.now() - t0) / ms);
+    a.volume = Math.max(0, Math.min(1, from + (target - from) * k));
+    if (k >= 1) clearInterval(_ambTimer);
+  }, 40);
+}
+function startAmbient() {
+  const a = $('#ambient'); if (!a) return;
+  a.volume = 0;
+  a.play().then(() => ambientTo(AMBIENT_VOL, 2500)).catch(() => {});  // fade in
+}
 
 async function api(path, opts) {
   const r = await fetch(path, opts);
@@ -238,6 +266,7 @@ const TONE_STRIDE_MS = 620;
 function playTones(chipEls) {
   return new Promise(resolve => {
     if (!chipEls.length) return resolve();
+    ambientTo(AMBIENT_DUCK, 250);   // pull the bed back while she speaks
     chipEls.forEach((el, i) => {
       setTimeout(() => {
         el.classList.add('opacity-100', 'scale-100', 'playing');
@@ -249,7 +278,8 @@ function playTones(chipEls) {
       }, i * TONE_STRIDE_MS);
     });
     // resolve once the final note has sounded and had a moment to ring
-    setTimeout(resolve, (chipEls.length - 1) * TONE_STRIDE_MS + 900);
+    setTimeout(() => { ambientTo(AMBIENT_VOL, 1200); resolve(); },   // bring the bed back
+      (chipEls.length - 1) * TONE_STRIDE_MS + 900);
   });
 }
 
@@ -260,12 +290,6 @@ function makeChip(t, isNew) {
   c.className = CHIP_CLS;
   c.textContent = t.glyph;
   c.dataset.audio = t.audio; c.dataset.toneId = t.id; c.dataset.cat = t.category;
-  const cat = CATS[t.category] || { label: '?', color: '#888' };
-  // persistent category cue: a small colored dot under the glyph
-  const dot = document.createElement('span');
-  dot.className = "absolute bottom-[3px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full";
-  dot.style.background = cat.color;
-  c.appendChild(dot);
   const tip = document.createElement('span');
   // left-anchored (not centered) so the leftmost chip's tip never spills past the
   // panel edge, which the scrolling log would clip.
@@ -565,9 +589,21 @@ $('#lexClose').addEventListener('click', closeDrawer);
 $('#backdrop').addEventListener('click', closeDrawer);                       // (2) click outside closes
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
 
+// A dim light that trails the cursor. Transform-only moves (no layout), centered
+// on the pointer; fades out when the pointer leaves the window.
+(function cursorGlow() {
+  const g = $('#cursorGlow');
+  window.addEventListener('pointermove', e => {
+    g.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) translate(-50%, -50%)`;
+    g.style.opacity = '1';
+  });
+  window.addEventListener('pointerleave', () => { g.style.opacity = '0'; });
+})();
+
 // Threshold modal: dismiss it, and keep the briefing visible on the evidence board.
 function begin() {
   showCaseBrief();
+  startAmbient();                    // first user gesture — safe to start audio
   const intro = $('#intro');
   intro.classList.add('opacity-0');
   setTimeout(() => intro.remove(), 700);

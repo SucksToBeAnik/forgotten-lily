@@ -23,6 +23,15 @@ if not os.path.exists(os.path.join(_TONES_DIR, "self_i.wav")):
 
     synth.main()
 
+# Same for the ambient piano bed (gitignored build output): render it if absent so
+# the Space has the low background loop.
+_AUDIO_DIR = os.path.join(os.path.dirname(__file__), "app", "static", "audio")
+if not os.path.exists(os.path.join(_AUDIO_DIR, "ambient.wav")):
+    print("[startup] ambient bed missing — generating with tones/ambient.py …")
+    from tones import ambient
+
+    ambient.main()
+
 from app.server import app  # FastAPI: /api/*, /static, "/" -> custom frontend
 
 with gr.Blocks(title="Forgotten Lily — engine", analytics_enabled=False) as demo:
