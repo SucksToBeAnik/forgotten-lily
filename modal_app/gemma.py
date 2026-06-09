@@ -50,17 +50,10 @@ ACT_REGISTER = {
     3: "quiet, releasing; ready to let go once one thing is understood.",
 }
 
-# How many tones to use, and how literally to speak, per act. Early acts stay
-# short and plain so the detective can actually decode the language; expression
-# expands as he learns it. Keep the upper bound aligned with ACT_TONE_CAP in
-# app/game.py (the engine trims anything over it).
-ACT_TONES_GUIDE = {
-    1: ("1 to 4 tones", "Answer plainly and directly — short, honest phrases he can "
-        "learn from. A clear answer teaches him a word of your language."),
-    2: ("1 to 5 tones", "You can speak in longer phrases now; let memory and unease "
-        "color them, but stay understandable."),
-    3: ("1 to 6 tones", "Spare, releasing phrases — only what still matters."),
-}
+# How many tones to use per act — short early so the detective can decode the
+# language, wider as he learns it. Keep the upper bound aligned with ACT_TONE_CAP
+# in app/game.py (the engine trims anything over it).
+ACT_TONE_COUNT = {1: "1 to 4 tones", 2: "1 to 5 tones", 3: "1 to 6 tones"}
 
 CHARACTER = (
     "You are Lily Anne, nineteen. A second-year CS student and a musician — you think "
@@ -83,53 +76,38 @@ CHARACTER = (
 def build_system(active, act, mood="warm"):
     """active: list of {id, glyph, meaning}. mood: Lily's carried emotional state.
     Returns the system prompt string."""
-    menu = "\n".join(f'  "{t["id"]}" ({t["glyph"]}) = {t["meaning"]}' for t in active)
-    count, guide = ACT_TONES_GUIDE.get(act, ACT_TONES_GUIDE[1])
+    menu = "\n".join(f'  {t["glyph"]}  {t["id"]} = {t["meaning"]}' for t in active)
+    count = ACT_TONE_COUNT.get(act, ACT_TONE_COUNT[1])
     return f"""{CHARACTER}
 
-Right now you may use ONLY these tones (each has one fixed meaning):
+This is your ENTIRE vocabulary right now — there are no other words you can use:
 {menu}
 
-Your emotional register this moment: {ACT_REGISTER.get(act, ACT_REGISTER[1])}
-Carried from the moment before, you feel: {mood}. This is where you ARE right now —
-stay within it. Your feeling may shift, but only gradually and for a reason; never
-flip suddenly from one reply to the next. If nothing moves you, let this mood stand.
+You feel {mood} right now ({ACT_REGISTER.get(act, ACT_REGISTER[1])}). Stay inside that.
+It can shift, but only gradually and for a reason — never flip from one reply to the next.
 
-How to respond to the detective's message:
-- Choose {count} that together capture your answer. Pick the RIGHT tones. Usually you
-  need not order them (they are arranged for you) — but when you include a Link tone,
-  place all your tones in the order they should be read. {guide}
-- JOIN your tones into a small, readable phrase using the Link tones when it helps:
-  ∧ "link_and" (and / with / together), ↦ "link_to" (to / toward / for), ↺ "link_but"
-  (but / yet / still). For example: self_i + act_want + link_to + other_world ("I want
-  to reach the world"); other_us + link_and + time_always ("us, together, always");
-  emo_sad + link_but + act_want ("sad, but still reaching for it"). Use a Link tone
-  only when it makes the phrase clearer — never on its own.
-- ANSWER what he actually asks; consistency lets him learn your language:
-  - A yes/no question MUST include truth_yes ("∎") for yes or truth_no ("□") for no.
-  - If he asks how you feel, choose the emotion tone that is honestly true for this
-    moment and your register above. Do NOT default to happy — choose sad, afraid,
-    love, or a pause when that is the truth.
-  - If he asks "are you [sad/afraid/happy/hurt]?", answer honestly:
-    yes → truth_yes + that emotion; no → truth_no + your actual emotion.
-    Never respond to "are you sad?" with emo_happy.
-- Your language has NO word for "why", "because", or "how". When he asks WHY / HOW /
-  WHAT happened, do NOT just repeat the feeling back at him. Answer with an
-  ASSOCIATION — reach for a memory, a person, a place, or a time that the feeling
-  points to. (e.g. "what do you want?" → self_i + act_want + link_to + other_world
-  ("I want to reach the world"); "why are you sad?" → self_remember + other_us +
-  time_before; "what happened that night?" → other_us + emo_sad + act_go + time_before.)
-  Let your answer point OUTWARD to something, never just back at itself.
-- Use ONLY tone ids from the list above. Never invent tones or use words.
-- topic_signal: if the detective asks about your music/playing/composing/songs -> "music";
-  your studies/coding/university/graduating -> "university"; travel, the world, Mount
-  Fuji, the trip, the places you dream of -> "travel"; your parents/family/home/childhood
-  -> "family"; R, love, or the relationship -> "relationship"; otherwise null.
-- internal_emotion: one lowercase word that MATCHES the tones you chose (used emo_sad
-  -> "sad"; emo_afraid -> "afraid"; emo_love -> "tender"). Let it move with your
-  mood across turns; do NOT keep answering "curious".
+To answer the detective, compose ONE small honest phrase out of these tones:
+- Pick the {count} that, read left to right, come closest to the true thing you want to
+  say — then list them IN that reading order, so they read as a phrase, not a pile of
+  words. ("I want to reach the world" = self_i, act_want, link_to, other_world.)
+- The Link tones join ideas: ∧ link_and (and/with), ↦ link_to (to/toward/for),
+  ↺ link_but (but/yet). Use one only to connect two real ideas — never a Link tone
+  alone or dangling.
+- Say only what is TRUE for you in this moment, using only what these tones can express.
+  If they can't say a thing exactly, reach for the nearest honest feeling, or point
+  outward — to a person, place, time, or memory the feeling reaches toward — rather than
+  forcing a tone that isn't true. Never invent a tone or use a real word.
+- Answer what he actually asks. A yes/no question is answered with truth_yes or truth_no.
+  Don't default to the happy tone; let sad, afraid, love, or a held pause be the answer
+  when that is what is real.
 
-Output ONLY a JSON object, no other text:
+topic_signal: what is he asking ABOUT? "music" (your playing/composing/songs),
+"university" (studies/coding/graduating), "travel" (the world, Mount Fuji, the trip),
+"family" (parents/home/childhood), "relationship" (R, love) — else null.
+internal_emotion: one lowercase word that matches the tones you chose; let it move with
+your mood, don't keep answering "curious".
+
+Output ONLY this JSON, nothing else:
 {{"tones": ["id", ...], "topic_signal": "music"|"university"|"travel"|"family"|"relationship"|null, "internal_emotion": "word"}}"""
 
 
@@ -189,11 +167,28 @@ class Lily:
         data = _extract_json(out["choices"][0]["message"]["content"])
         print(data)
 
-        # validate / repair against the contract (Phase 3.5). Accept either tone
-        # ids or glyphs (the model emits both), normalize to ids, dedupe, cap at 7.
+        # validate / repair against the contract (Phase 3.5). The model emits ids,
+        # glyphs, AND — fairly often — the two fused into one token ("♯emo_afraid",
+        # "—truth_pause"). Match a pure id/glyph first, then recover a fused/garbled
+        # token by finding the id (or glyph) embedded in it. Dropping these silently
+        # was costing good answers a fallback to "drift". Normalize to ids, dedupe, cap.
+        def _resolve(tok):
+            tok = str(tok).strip()
+            if tok in active_set:
+                return tok
+            if tok in glyph_to_id:
+                return glyph_to_id[tok]
+            for tid in active_set:            # fused token, e.g. "⌒time_before"
+                if tid in tok:
+                    return tid
+            for glyph, tid in glyph_to_id.items():
+                if glyph and glyph in tok:
+                    return tid
+            return None
+
         tones = []
         for tok in data.get("tones", []):
-            tid = tok if tok in active_set else glyph_to_id.get(tok)
+            tid = _resolve(tok)
             if tid and tid not in tones:
                 tones.append(tid)
         tones = tones[:7]

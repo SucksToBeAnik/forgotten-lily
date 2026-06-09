@@ -134,6 +134,14 @@
       <div id="preamble" class="font-serif text-[19px] italic text-muted leading-[1.5] mb-5 max-w-[60ch]">*Lily has forgotten how to speak. She only speaks in melodies now. Keep conversing with Lily to understand what really happened to her.*</div>
       <div id="log" class="flex-1 overflow-y-auto pr-2 flex flex-col gap-[18px]"></div>
       <div class="mt-3.5">
+        <div id="trustRow" class="flex items-center gap-2 mb-2 text-[10px] tracking-[.16em] text-muted/70"
+             title="Caring, personal questions earn her trust. Fill the bar and one of her memories surfaces.">
+          <span>HER TRUST</span>
+          <div class="flex-1 h-1 rounded-full bg-white/[.07] overflow-hidden">
+            <div id="trustFill" class="h-full rounded-full bg-warm transition-all duration-700" style="width:0%"></div>
+          </div>
+          <span id="trustText" class="tabular-nums text-muted/60">0/3</span>
+        </div>
         <div class="flex gap-2.5 items-end">
           <textarea id="input" maxlength="320" placeholder="Say something to her…"
             class="flex-1 resize-none h-12 bg-black/25 border border-chipedge rounded-md text-paper font-mono text-sm px-3.5 py-3 focus:outline-none focus:border-accent"></textarea>
@@ -399,6 +407,45 @@ function addLily(resp) {
   return els;
 }
 
+// A tappable helping-question chip (styled for the light paper note + the dark empty
+// state alike). Clicking pre-fills the input so the player can edit and send.
+function makePromptChip(q) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'text-left text-[11px] leading-snug text-[#5c4326] bg-[#e9ddc6] hover:bg-[#dccba6] border border-[#cbb489] rounded px-2 py-1 transition cursor-pointer';
+  b.textContent = q;
+  b.addEventListener('click', () => fillInput(q));
+  return b;
+}
+function fillInput(text) {
+  const ta = $('#input');
+  ta.value = text; updateCount(); ta.focus();
+  try { ta.setSelectionRange(text.length, text.length); } catch (_) {}
+}
+
+// "Her trust" meter — caring/personal questions fill it; each full bar surfaces a
+// memory and resets (server-authoritative; we just reflect resp.empathy here).
+function setEmpathy(val, max) {
+  if (typeof val !== 'number' || !max) return;
+  $('#trustFill').style.width = Math.round((val / max) * 100) + '%';
+  $('#trustText').textContent = `${val}/${max}`;
+}
+
+// A few starter questions in the empty evidence pane, to bootstrap before any
+// evidence exists (they vanish with the empty state once the first note lands).
+const STARTER_PROMPTS = ['What do you study?', 'What do you dream about?', 'Are you okay?'];
+function renderStarters() {
+  // Attach to the pinned case brief (preferred) or the empty placeholder — whichever
+  // is on the board — so a few openings exist before any evidence does.
+  const host = $('#notes .brief') || $('#notes .empty');
+  if (!host || host.querySelector('.starters')) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'starters mt-3 pt-2.5 border-t border-black/10 flex flex-wrap gap-1.5';
+  wrap.innerHTML = '<div class="w-full text-[9px] tracking-[.2em] text-[#9a7d5e] mb-0.5">TRY ASKING HER</div>';
+  STARTER_PROMPTS.forEach(q => wrap.appendChild(makePromptChip(q)));
+  host.appendChild(wrap);
+}
+
 function addNotes(notes) {
   if (!notes.length) return;
   const host = $('#notes');
@@ -420,11 +467,15 @@ function addNotes(notes) {
       el.appendChild(f);
     }
     el.appendChild(document.createTextNode(n.body));
-    if (n.hint) {             // (#1) evidence helps decode the lexicon
-      const h = document.createElement('div');
-      h.className = 'not-italic mt-2.5 pt-2 border-t border-black/10 text-[10px] text-[#7a5c3e] flex items-center gap-1.5';
-      h.innerHTML = '🔑 <span>a clue to one of her tones — open the lexicon</span>';
-      el.appendChild(h);
+    if (n.prompts && n.prompts.length) {   // helping questions: nudge the next move
+      const pr = document.createElement('div');
+      pr.className = 'not-italic mt-3 pt-2.5 border-t border-black/10';
+      pr.innerHTML = '<div class="text-[9px] tracking-[.2em] text-[#9a7d5e] mb-1.5">ASK HER</div>';
+      const row = document.createElement('div');
+      row.className = 'flex flex-wrap gap-1.5';
+      n.prompts.forEach(q => row.appendChild(makePromptChip(q)));
+      pr.appendChild(row);
+      el.appendChild(pr);
     }
     // (1) NEW badge that fades, plus a toast — discovery should feel like an event
     const badge = document.createElement('div');
@@ -616,6 +667,7 @@ async function send() {
     addNotes(resp.notes_unlocked);
     if (resp.act_changed) setAct(resp.act);
     if (resp.total_tones) TOTAL_TONES = resp.total_tones;
+    setEmpathy(resp.empathy, resp.empathy_max);
     $('#lexCount').textContent = `${resp.tones_seen}/${TOTAL_TONES}`;
   } catch(e) { thinking.remove(); console.error(e); }
   busy = false; $('#send').disabled = false; ta.focus();
@@ -666,7 +718,6 @@ async function openLexicon(focusId) {
             <button class="lexsave shrink-0 w-7 h-7 rounded border border-chipedge text-muted text-sm flex items-center justify-center transition hover:text-paper hover:border-accent" title="save (Enter)">↵</button>
           </div>
           <div class="bar h-1 rounded-sm mt-2 bg-[#3a3a3a]" data-c="${e.confidence||'red'}"></div>
-          ${e.hint ? `<div class="flex items-start gap-1.5 mt-2 text-[10px] text-warm/90 leading-snug"><span>🔑</span><span>${esc(e.hint)}</span></div>` : ''}
         </div>`;
     }
     grid.appendChild(cell);
@@ -721,6 +772,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(
 function begin() {
   showCaseBrief();
   startAmbient();                    // first user gesture — safe to start audio
+  renderStarters();                  // bootstrap helping questions in the empty evidence pane
   const intro = $('#intro');
   intro.classList.add('opacity-0');
   setTimeout(() => intro.remove(), 700);

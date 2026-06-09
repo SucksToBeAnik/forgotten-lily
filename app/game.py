@@ -4,6 +4,7 @@ deps so it can be unit-tested in isolation. The server enriches inference
 responses through here; the model never decides progression.
 """
 import json
+import re
 import uuid
 from pathlib import Path
 
@@ -29,12 +30,11 @@ LINK_TONES = {t["id"] for t in TONES["tones"] if t["category"] == "G"}
 # fits without forcing her to drop a word.
 ACT_TONE_CAP = {1: 4, 2: 5, 3: 7}
 
-# Lily's grammar. Gemma chooses WHICH tones she says; we choose the ORDER they
-# read in, so chips form a coherent phrase ("I feel sad") instead of a bag of
-# words ("feel sad I"). Lower = earlier. Other-tones are treated as objects (the
-# common case: "I love you", "I remember him"). The finale is exempt — it ships a
-# hand-authored order (see server.py / PLAN 4.4). Tuned for the short Act I phrases
-# where misordering would be most visible.
+# Lily's grammar, as a canonical reading order. The model is now asked to compose
+# its tones in reading order itself (build_system in modal_app/gemma.py), so the
+# engine TRUSTS her ordering and does not reshuffle replies. This table survives
+# only to sequence the guaranteed-coverage teach-reveals (_coverage_order) in a
+# natural order. Lower = earlier; finale ships its own hand-authored order.
 GRAMMAR_ORDER = {
     "truth_yes": 0, "truth_no": 0,                                   # answer first
     "self_i": 1,                                                     # subject
@@ -46,13 +46,6 @@ GRAMMAR_ORDER = {
     "time_now": 6, "time_before": 6, "time_after": 6, "time_always": 6,  # time
     "truth_pause": 7, "truth_nothing": 8,                            # breath, end
 }
-
-
-def _order_tones(tone_ids):
-    """Sort Lily's chosen tones into her grammar (stable). Unknown ids sort last.
-    Skipped entirely when a connective is present (see apply_turn) — there she is
-    composing a real phrase and her own ordering is more trustworthy than the sort."""
-    return sorted(tone_ids, key=lambda t: GRAMMAR_ORDER.get(t, 50))
 
 
 # Lily's mood persists across turns instead of being re-rolled each reply (which
@@ -78,7 +71,8 @@ def new_session():
         "tone_contexts": {},      # tone id -> [player messages where it appeared, max 8]
         "lexicon": {},            # tone id -> {guess, confidence}
         "notes_unlocked": [],     # note ids, in unlock order
-        "empathy": 0,             # rises when the detective asks caring/personal questions
+        "empathy": 0,             # meter 0..EMPATHY_METER_MAX; each fill reveals a memory, then resets
+        "empathy_counted": [],    # fingerprints of caring questions already counted (anti-farm)
         "mood": ACT_BASELINE_MOOD[1],  # persistent emotional state, carried across turns
         "finale_played": False,
     }
@@ -116,6 +110,33 @@ TRAVEL_CUES = (
 def _has_cue(message, cues):
     m = (message or "").lower()
     return any(c in m for c in cues)
+
+
+# --- empathy meter -----------------------------------------------------------
+# Caring/personal questions fill a meter; each FULL meter surfaces one of her more
+# private memories, then resets. The empathy notes are revealed in the order their
+# author intended (their old unlock_value doubled as a sequence), act-gated so the
+# act-3 one can't appear early. These memories are off the critical path to the
+# ending, so the meter can be a meatier optional thread.
+EMPATHY_METER_MAX = 3
+EMPATHY_NOTES = sorted(
+    (n for n in NOTES["notes"] if n["unlock_type"] == "empathy"),
+    key=lambda n: n["unlock_value"],
+)
+# Kept small on purpose: only truly contentless glue. Stripping too much (e.g.
+# "okay") would collapse a real caring question like "are you okay?" to nothing.
+_STOP_WORDS = {"a", "an", "the", "is", "are", "do", "did", "to", "of", "you",
+               "your", "i", "it", "that", "this"}
+
+
+def _empathy_fingerprint(message):
+    """A stable signature for a caring question so repeats/rewordings of the SAME
+    question don't farm the meter. Significant words, lowercased, deduped, sorted —
+    so 'are you okay' and 'you okay?' collapse to one fingerprint. Falls back to the
+    full word set if stripping leaves nothing, so a question never becomes empty."""
+    words = re.sub(r"[^a-z0-9 ]", " ", (message or "").lower()).split()
+    sig = sorted({w for w in words if w not in _STOP_WORDS})
+    return " ".join(sig or sorted(set(words)))
 
 
 # --- derived helpers ---------------------------------------------------------
@@ -191,6 +212,8 @@ def _unlock_notes(state, topic_signal):
             continue
         if state["act"] < note["act"]:
             continue
+        if note["unlock_type"] == "empathy":
+            continue  # empathy memories are surfaced by the meter, not here
         hit = False
         if note["id"] == "N10":  # special: every tone SEEN (PLAN 7.3)
             hit = seen_total >= TOTAL_TONES
@@ -198,11 +221,27 @@ def _unlock_notes(state, topic_signal):
             hit = lex >= note["unlock_value"]
         elif note["unlock_type"] == "topic":
             hit = topic_signal == note["unlock_value"]
-        elif note["unlock_type"] == "empathy":
-            hit = state["empathy"] >= note["unlock_value"]
         if hit:
             state["notes_unlocked"].append(note["id"])
             newly.append(_note_payload(note))
+    return newly
+
+
+def _unlock_empathy_notes(state):
+    """Spend full meters: while the meter is full AND an empathy memory is eligible
+    (its act has been reached and it isn't already found), surface the next one and
+    drain a meter's worth. Runs every turn, so a meter left full in Act II releases
+    its act-III memory the moment the act advances."""
+    newly = []
+    while state["empathy"] >= EMPATHY_METER_MAX:
+        nxt = next((n for n in EMPATHY_NOTES
+                    if n["id"] not in state["notes_unlocked"] and state["act"] >= n["act"]),
+                   None)
+        if nxt is None:
+            break
+        state["notes_unlocked"].append(nxt["id"])
+        newly.append(_note_payload(nxt))
+        state["empathy"] -= EMPATHY_METER_MAX  # reset for the next memory
     return newly
 
 
@@ -214,7 +253,7 @@ def _note_payload(note):
         "asset": note["asset"],
         "design": note["design"],
         "found": note.get("found", ""),   # how the investigation surfaced it
-        "hint": note.get("hint"),         # {tone_id, text} — nudges a tone's meaning
+        "prompts": note.get("prompts", []),  # helping questions: nudge the player's next move
         "centered": note["id"] == "N10",  # placed flat in the center, not pinned
     }
 
@@ -235,9 +274,14 @@ def apply_turn(state, inference_response, message=""):
     state["turn"] += 1
     active = set(active_tone_ids(state["act"]))
 
-    # empathy rises on caring or personal questions; gates the backstory evidence
+    # empathy meter fills on caring/personal questions — but only on a question she
+    # hasn't already been asked (so the same question can't be repeated to farm it).
     if _has_cue(message, EMPATHY_CUES) or _has_cue(message, PERSONAL_CUES):
-        state["empathy"] += 1
+        fp = _empathy_fingerprint(message)
+        counted = state.setdefault("empathy_counted", [])
+        if fp and fp not in counted:
+            counted.append(fp)
+            state["empathy"] = min(state["empathy"] + 1, EMPATHY_METER_MAX)
 
     cap = ACT_TONE_CAP.get(state["act"], 7)
     raw = inference_response.get("tones", [])
@@ -247,12 +291,14 @@ def apply_turn(state, inference_response, message=""):
         tones = list(raw)
     else:
         tones = [tid for tid in raw if tid in active][:cap]
+        # A Link tone joins two ideas; with fewer than two content tones it says nothing
+        # (e.g. self_i + link_and -> "I and"), so drop dangling connectives.
+        if sum(1 for t in tones if t not in LINK_TONES) < 2:
+            tones = [t for t in tones if t not in LINK_TONES]
         if not tones:  # never break character; a safe in-character "drift"
             tones = [tid for tid in ("self_remember", "truth_pause") if tid in active] or [ACT1_TONES[0]]
-        # render in Lily's grammar so the phrase reads coherently. When she reaches for a
-        # connective she is composing a real phrase — trust her ordering then.
-        if not (set(tones) & LINK_TONES):
-            tones = _order_tones(tones)
+        # Trust Lily's own reading order: the model composes her tones in the order they
+        # should be read (build_system), so the engine no longer reshuffles her phrasing.
 
         # GUARANTEED COVERAGE — the reachability backbone. Progression gates key off
         # tones SEEN (Act II→III needs ≥18; the ending's N10 needs all 27), but the
@@ -263,9 +309,7 @@ def apply_turn(state, inference_response, message=""):
         if not any(t not in seen for t in tones):
             unseen = [t for t in _coverage_order(state["act"]) if t not in seen and t not in tones]
             if unseen:
-                tones = tones + [unseen[0]]
-                if not (set(tones) & LINK_TONES):
-                    tones = _order_tones(tones)
+                tones = tones + [unseen[0]]   # appended at the end as a gentle teach-reveal
 
     tone_ctxs = state.setdefault("tone_contexts", {})
     for tid in tones:
@@ -284,10 +328,13 @@ def apply_turn(state, inference_response, message=""):
         topic = "travel"
 
     newly = _unlock_notes(state, topic)
+    newly += _unlock_empathy_notes(state)  # spend any full meter (respects the current act)
     act_changed = _maybe_advance_act(state)
-    # a transition may itself open threshold notes gated behind the new act
+    # a transition may itself open threshold notes gated behind the new act, and may
+    # release an empathy memory that was waiting on the act
     if act_changed:
         newly += _unlock_notes(state, None)
+        newly += _unlock_empathy_notes(state)
 
     # carry Lily's mood forward: take the emotion she actually voiced this turn;
     # otherwise hold steady (continuity), snapping to the new baseline on a transition.
@@ -308,6 +355,8 @@ def apply_turn(state, inference_response, message=""):
         "act": state["act"],
         "act_changed": act_changed,
         "notes_unlocked": newly,
+        "empathy": state["empathy"],          # current meter fill (0..max)
+        "empathy_max": EMPATHY_METER_MAX,
         "turn": state["turn"],
         "tones_seen": len(state["tones_seen_count"]),
         "total_tones": TOTAL_TONES,
@@ -352,23 +401,10 @@ def set_guess(state, tone_id, guess):
     return {"tone_id": tone_id, "guess": guess, "confidence": conf}
 
 
-def _hints_from_found_notes(state):
-    """tone_id -> hint text, gathered from every evidence note already unlocked.
-    This is how evidence helps the player decode the lexicon."""
-    hints = {}
-    for nid in state["notes_unlocked"]:
-        h = NOTE_BY_ID.get(nid, {}).get("hint")
-        if h and h["tone_id"] not in hints:
-            hints[h["tone_id"]] = h["text"]
-    return hints
-
-
 def lexicon_view(state):
     """Full lexicon for the drawer: every tone the player has SEEN, plus counts
-    of locked/remaining. Unseen tones are returned as locked placeholders. Seen
-    tones carry any hint unlocked by found evidence."""
+    of locked/remaining. Unseen tones are returned as locked placeholders."""
     seen = state["tones_seen_count"]
-    hints = _hints_from_found_notes(state)
     entries = []
     for t in TONES["tones"]:
         tid = t["id"]
@@ -376,7 +412,7 @@ def lexicon_view(state):
             lx = state["lexicon"].get(tid, {})
             entries.append({
                 "id": tid, "glyph": t["glyph"], "category": t["category"],
-                "seen": seen[tid], "locked": False, "hint": hints.get(tid),
+                "seen": seen[tid], "locked": False,
                 "guess": lx.get("guess", ""), "confidence": lx.get("confidence", "red"),
             })
         else:
