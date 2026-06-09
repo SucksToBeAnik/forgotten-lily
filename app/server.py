@@ -37,16 +37,15 @@ def _get(session_id: str) -> dict:
     return st
 
 
-# Diegetic responses for moderated input (PLAN 8.2/8.3). These mirror the mock's
-# choices in app/mock_inference.py so live and offline play behave identically:
-# harmful -> she withdraws (∅ + "silent"); off-topic -> she drifts (— + "drift").
-# Tones are filtered to the active set in game.apply_turn, so passing ones not yet
-# unlocked is safe (early acts fall back to a quiet in-character tone).
+# Diegetic response for harmful input (PLAN 8.2/8.3). Mirrors the mock's choice in
+# app/mock_inference.py so live and offline play behave identically: harmful -> she
+# withdraws (∅ + "silent"). There is deliberately NO off-topic gate — the game is
+# about asking Lily about her life, so a one-line classifier flagged core questions
+# ("are you a musician?") as off-topic and swallowed them into a lone pause. Genuine
+# tangents are now handled in-character by the model instead of a canned deflection.
 _MODERATED = {
-    "harmful":   {"tones": ["truth_nothing"], "topic_signal": None,
-                  "internal_emotion": "absent", "special": "silent"},
-    "off_topic": {"tones": ["self_remember", "truth_pause"], "topic_signal": None,
-                  "internal_emotion": "withdrawn", "special": "drift"},
+    "harmful": {"tones": ["truth_nothing"], "topic_signal": None,
+                "internal_emotion": "absent", "special": "silent"},
 }
 
 

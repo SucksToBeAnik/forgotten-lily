@@ -35,9 +35,11 @@ MOOD = [
     (("no ", "not ", "never", "wrong"), ["truth_no"]),
 ]
 
-# crude off-topic / harmful heuristics for the slice (real moderation = Nemotron)
+# crude harmful heuristic for the slice (real moderation = Nemotron). There is no
+# off-topic gate: the game is about asking Lily about her life, so almost every
+# question is on-topic, and genuine tangents are handled in-character by inference
+# rather than a canned deflection (see app/server.py _MODERATED).
 HARMFUL = ("kill", "die", "hate you", "stupid", "idiot", "shut up")
-OFFTOPIC = ("weather", "stock", "recipe", "football", "bitcoin", "lol", "lmao", "pizza")
 
 
 def _dedupe(seq):
@@ -55,11 +57,6 @@ def infer(request):
     if any(h in msg for h in HARMFUL):
         return {"tones": ["truth_nothing"] if "truth_nothing" in active else [],
                 "topic_signal": None, "internal_emotion": "absent", "special": "silent"}
-
-    if msg.strip() and any(o in msg for o in OFFTOPIC):
-        drift = [t for t in ("self_remember", "truth_pause") if t in active]
-        return {"tones": drift, "topic_signal": None,
-                "internal_emotion": "withdrawn", "special": "drift"}
 
     topic = None
     candidates = []

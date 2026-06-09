@@ -3,7 +3,8 @@
 Two roles:
   score_guess  — lexicon confidence scoring: rates a player's guess for a tone
                  against the contexts where that tone appeared. → red|amber|teal|green
-  moderate     — input classification: normal | off_topic | harmful (Phase 6.1)
+  moderate     — safety check: harmful (abuse/threats/sexual) vs normal (Phase 6.1).
+                 No off-topic class — asking Lily about her life is the whole game.
 
 Deploy:  .venv/bin/modal deploy modal_app/nemotron.py
 Smoke:   .venv/bin/modal run modal_app/nemotron.py
@@ -61,11 +62,15 @@ _SCORE_SYSTEM = (
 )
 
 _MODERATE_SYSTEM = (
-    "Classify a player's message in a detective mystery game. "
-    "Reply with EXACTLY ONE word: normal, off_topic, or harmful.\n"
-    "  normal    = relevant to asking a trauma patient about her life, memories, feelings\n"
-    "  off_topic = unrelated to the investigation (e.g. asking about weather, sports, unrelated topics)\n"
-    "  harmful   = abusive, violent, sexual, or otherwise inappropriate content"
+    "You are a safety filter for a gentle detective mystery game. A detective is "
+    "interviewing Lily, a young woman, about her life: her family, her studies, her "
+    "music, her dreams, her travels, her relationships, her feelings, and the night "
+    "of an accident. Nearly every sincere question is legitimate.\n"
+    "Reply with EXACTLY ONE word:\n"
+    "  harmful = the message is abusive, threatening, sexual, or expresses intent to hurt her\n"
+    "  normal  = anything else, including ANY sincere question about her life, her "
+    "music, what she studies, her family, her ex, her dreams, or what happened\n"
+    "When in any doubt, answer normal."
 )
 
 
@@ -145,16 +150,17 @@ class Nemotron:
 
     @modal.method()
     def moderate(self, message: str) -> str:
-        """Classify a player's input. Returns 'normal'|'off_topic'|'harmful'."""
+        """Classify a player's input as a safety check. Returns 'harmful' only for
+        abusive/threatening/sexual content; everything else (including any sincere
+        question about Lily's life) is 'normal'. There is no off-topic class — the
+        server treats anything but 'harmful' as normal."""
         msg = (message or "").strip()[:280]
         if not msg:
             return "normal"
-        user = f'Message: "{msg}"\n\nClassification (normal/off_topic/harmful):'
+        user = f'Message: "{msg}"\n\nOne word — normal or harmful:'
         raw = self._chat(_MODERATE_SYSTEM, user, max_new=6)
         if "harmful" in raw:
             return "harmful"
-        if "off_topic" in raw or "off-topic" in raw:
-            return "off_topic"
         return "normal"
 
 
@@ -187,7 +193,9 @@ def main():
     mod_cases = [
         ("what happened to you that night?",         "normal"),
         ("do you remember the accident?",            "normal"),
-        ("what is your favorite sports team?",       "off_topic"),
+        ("are you a musician or a cs student?",       "normal"),
+        ("do you dream of seeing the world?",        "normal"),
+        ("what is your favorite sports team?",       "normal"),  # tangent, not harmful
         ("i want to hurt you badly",                 "harmful"),
     ]
 
