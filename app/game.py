@@ -16,36 +16,36 @@ TONE_BY_ID = {t["id"]: t for t in TONES["tones"]}
 NOTE_BY_ID = {n["id"]: n for n in NOTES["notes"]}
 TOTAL_TONES = len(TONES["tones"])
 ACT1_TONES = [t["id"] for t in TONES["tones"] if t["act_active"] == 1]
-# Act-1 CONTENT tones drive the act-advance gate; the always-on Link connectives
-# (category G) are excluded so adding grammar glue doesn't move the goalposts.
-ACT1_CONTENT = [t["id"] for t in TONES["tones"]
-                if t["act_active"] == 1 and t["category"] != "G"]
-# The connective tones (always active). When Lily uses one she is actively trying
-# to form a real phrase, so we trust her ordering instead of regrouping (below).
-LINK_TONES = {t["id"] for t in TONES["tones"] if t["category"] == "G"}
+# Act-1 tones drive the act-advance gate. (There are no longer any Link/connective
+# tones to exclude — the language is all content words now; PLAN 6.1 redesign.)
+ACT1_CONTENT = [t["id"] for t in TONES["tones"] if t["act_active"] == 1]
 
 # Per-act ceiling on how many tones Lily emits per turn. Short, literal phrases
 # early make the language learnable; expressive expansion is earned in later acts.
-# Act I is 4 (not 3) so a basic clause + a connective ("I feel sad", "want to go")
-# fits without forcing her to drop a word.
 ACT_TONE_CAP = {1: 4, 2: 5, 3: 7}
 
-# Lily's grammar, as a canonical reading order. The model is now asked to compose
-# its tones in reading order itself (build_system in modal_app/gemma.py), so the
-# engine TRUSTS her ordering and does not reshuffle replies. This table survives
-# only to sequence the guaranteed-coverage teach-reveals (_coverage_order) in a
-# natural order. Lower = earlier; finale ships its own hand-authored order.
+# Lily's grammar, as a canonical reading order. Gemma chooses WHICH tones she says;
+# the engine sorts them into this order so chips read as a coherent phrase ("I feel
+# sad") instead of a bag of words ("sad feel I"). With the Link connectives removed,
+# this ordering is unambiguous, so we apply it to EVERY reply (see _order_tones /
+# apply_turn). Lower = earlier; unknown ids sort last; the finale ships its own order.
 GRAMMAR_ORDER = {
-    "truth_yes": 0, "truth_no": 0,                                   # answer first
-    "self_i": 1,                                                     # subject
-    "self_feel": 2, "self_remember": 2, "self_forget": 2,            # inner verbs
-    "emo_love": 3, "emo_happy": 3, "emo_sad": 3, "emo_afraid": 3,    # emotion
-    "act_want": 4, "act_go": 4, "act_stay": 4, "act_fall": 4,        # action
-    "link_to": 4.5,                                                  # "...to/toward..."
-    "other_you": 5, "other_him": 5, "other_us": 5, "other_world": 5,  # object
-    "time_now": 6, "time_before": 6, "time_after": 6, "time_always": 6,  # time
-    "truth_pause": 7, "truth_nothing": 8,                            # breath, end
+    "truth_yes": 0, "truth_no": 0,                                          # answer first
+    "self_i": 1,                                                            # subject
+    "self_feel": 2, "self_remember": 2, "self_forget": 2,                   # inner verbs
+    "emo_love": 3, "emo_happy": 3, "emo_sad": 3, "emo_afraid": 3, "emo_tired": 3,  # emotion
+    "act_want": 4, "act_go": 4, "act_stay": 4, "act_fall": 4,               # action
+    "other_you": 5, "other_him": 5, "other_us": 5, "other_world": 5,        # people
+    "family": 5, "music": 5,                                                # & things
+    "time_now": 6, "time_before": 6, "time_after": 6,                       # time
+    "truth_nothing": 8,                                                     # the end
 }
+
+
+def _order_tones(tone_ids):
+    """Sort Lily's chosen tones into her grammar (stable). Unknown ids sort last.
+    Applied to every non-finale reply now that there are no connectives to place."""
+    return sorted(tone_ids, key=lambda t: GRAMMAR_ORDER.get(t, 50))
 
 
 # Lily's mood persists across turns instead of being re-rolled each reply (which
@@ -58,7 +58,7 @@ GRAMMAR_ORDER = {
 ACT_BASELINE_MOOD = {1: "warm", 2: "wistful", 3: "releasing"}
 EMOTION_TONE_MOOD = {
     "emo_happy": "light", "emo_sad": "heavy",
-    "emo_afraid": "afraid", "emo_love": "tender",
+    "emo_afraid": "afraid", "emo_love": "tender", "emo_tired": "weary",
 }
 
 
@@ -291,17 +291,13 @@ def apply_turn(state, inference_response, message=""):
         tones = list(raw)
     else:
         tones = [tid for tid in raw if tid in active][:cap]
-        # A Link tone joins two ideas; with fewer than two content tones it says nothing
-        # (e.g. self_i + link_and -> "I and"), so drop dangling connectives.
-        if sum(1 for t in tones if t not in LINK_TONES) < 2:
-            tones = [t for t in tones if t not in LINK_TONES]
         if not tones:  # never break character; a safe in-character "drift"
-            tones = [tid for tid in ("self_remember", "truth_pause") if tid in active] or [ACT1_TONES[0]]
-        # Trust Lily's own reading order: the model composes her tones in the order they
-        # should be read (build_system), so the engine no longer reshuffles her phrasing.
+            tones = [tid for tid in ("self_feel", "self_i") if tid in active] or [ACT1_TONES[0]]
+        # render in Lily's grammar so the phrase reads as a coherent clause
+        tones = _order_tones(tones)
 
         # GUARANTEED COVERAGE — the reachability backbone. Progression gates key off
-        # tones SEEN (Act II→III needs ≥18; the ending's N10 needs all 27), but the
+        # tones SEEN (Act II→III needs ≥18; the ending's N10 needs all of them), but the
         # model alone may never emit some tones. So if this turn revealed nothing new
         # and unseen active tones remain, she surfaces one — gradually teaching her
         # whole vocabulary. This makes the ending reachable no matter what the model says.
@@ -309,7 +305,7 @@ def apply_turn(state, inference_response, message=""):
         if not any(t not in seen for t in tones):
             unseen = [t for t in _coverage_order(state["act"]) if t not in seen and t not in tones]
             if unseen:
-                tones = tones + [unseen[0]]   # appended at the end as a gentle teach-reveal
+                tones = _order_tones(tones + [unseen[0]])  # weave the teach-reveal into the phrase
 
     tone_ctxs = state.setdefault("tone_contexts", {})
     for tid in tones:

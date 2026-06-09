@@ -86,20 +86,20 @@ This is your ENTIRE vocabulary right now — there are no other words you can us
 You feel {mood} right now ({ACT_REGISTER.get(act, ACT_REGISTER[1])}). Stay inside that.
 It can shift, but only gradually and for a reason — never flip from one reply to the next.
 
-To answer the detective, compose ONE small honest phrase out of these tones:
-- Pick the {count} that, read left to right, come closest to the true thing you want to
-  say — then list them IN that reading order, so they read as a phrase, not a pile of
-  words. ("I want to reach the world" = self_i, act_want, link_to, other_world.)
-- The Link tones join ideas: ∧ link_and (and/with), ↦ link_to (to/toward/for),
-  ↺ link_but (but/yet). Use one only to connect two real ideas — never a Link tone
-  alone or dangling.
-- Say only what is TRUE for you in this moment, using only what these tones can express.
-  If they can't say a thing exactly, reach for the nearest honest feeling, or point
-  outward — to a person, place, time, or memory the feeling reaches toward — rather than
-  forcing a tone that isn't true. Never invent a tone or use a real word.
-- Answer what he actually asks. A yes/no question is answered with truth_yes or truth_no.
-  Don't default to the happy tone; let sad, afraid, love, or a held pause be the answer
-  when that is what is real.
+To answer the detective, choose a few of these tones that TOGETHER say one true,
+coherent thing. You do not need to order them — they are arranged into a readable
+phrase for you; just pick the RIGHT tones so the phrase has a clear, felt meaning.
+(e.g. "I love music" = self_i, emo_love, music; "I want the world" = self_i, act_want,
+other_world; "I remember us, before" = self_i, self_remember, other_us, time_before.)
+- Use {count}. A few well-chosen tones read more clearly than many — never pad.
+- Your reply does NOT have to directly answer his question. A real feeling, or an
+  association the question stirs — a person, place, time, or memory — is a true answer.
+  What matters is that it MEANS something he can feel and decode, not that it is the
+  literal reply. Always say something coherent; never a random scatter of tones.
+- Use only what these tones can express. If they can't say a thing exactly, reach for the
+  nearest honest one — never force a tone that isn't true, never invent one or use a word.
+- Don't default to the happy tone; let sad, afraid, tired, or love be the answer when that
+  is what is real. A direct yes/no question is answered with truth_yes or truth_no.
 
 topic_signal: what is he asking ABOUT? "music" (your playing/composing/songs),
 "university" (studies/coding/graduating), "travel" (the world, Mount Fuji, the trip),
@@ -169,7 +169,7 @@ class Lily:
 
         # validate / repair against the contract (Phase 3.5). The model emits ids,
         # glyphs, AND — fairly often — the two fused into one token ("♯emo_afraid",
-        # "—truth_pause"). Match a pure id/glyph first, then recover a fused/garbled
+        # "♪music"). Match a pure id/glyph first, then recover a fused/garbled
         # token by finding the id (or glyph) embedded in it. Dropping these silently
         # was costing good answers a fallback to "drift". Normalize to ids, dedupe, cap.
         def _resolve(tok):
@@ -193,7 +193,7 @@ class Lily:
                 tones.append(tid)
         tones = tones[:7]
         if not tones:  # never break character: a safe in-character "drift"
-            tones = [t for t in ("self_remember", "truth_pause") if t in active_set]
+            tones = [t for t in ("self_feel", "self_i") if t in active_set]
         topic = data.get("topic_signal")
         if topic not in SIGNALS:
             topic = None
@@ -208,13 +208,11 @@ def main():
     internal_emotion='curious' stasis. Reports PASS/FAIL per case."""
     lily = Lily()
 
-    ACT1 = ["self_i", "self_feel", "other_you", "time_now", "emo_happy", "emo_sad",
-            "act_stay", "truth_pause", "truth_yes", "truth_no",
-            "link_and", "link_to", "link_but"]
-    ACT2 = ACT1 + ["self_remember", "self_forget", "other_him", "other_us",
-                   "time_before", "emo_afraid", "emo_love", "act_go"]
-    ACT3 = ACT2 + ["other_world", "time_after", "time_always", "act_want",
-                   "act_fall", "truth_nothing"]
+    # derive the active set per act straight from the data so this never drifts
+    import json as _json
+    _tones = _json.load(open(os.path.join(os.path.dirname(__file__), "..", "data", "tones.json")))["tones"]
+    _act = lambda a: [t["id"] for t in _tones if t["act_active"] <= a]
+    ACT1, ACT2, ACT3 = _act(1), _act(2), _act(3)
 
     # (message, act, active_tones, label, warn_if_emo_happy_in_response)
     CASES = [

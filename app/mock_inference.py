@@ -9,19 +9,19 @@ zero GPU cost. The real Modal/Gemma function (Phase 3) drops in behind the same
 THEMES = [
     (("music", "song", "sing", "play", "playing", "compose", "melody", "tune",
       "instrument", "piano", "guitar", "write", "make", "create", "creative"),
-     "music", ["self_i", "emo_love", "link_and", "self_feel"]),
+     "music", ["self_i", "emo_love", "music"]),
     (("code", "coding", "program", "cs", "computer", "university", "study", "class",
       "school", "assignment", "work", "graduate", "graduation"),
-     "university", ["self_i", "emo_happy", "self_feel", "act_want"]),
+     "university", ["self_i", "self_feel", "emo_happy"]),
     (("travel", "trip", "journey", "world", "fuji", "mountain", "japan", "abroad",
       "passport", "away", "see the world", "places", "dream", "explore", "go somewhere"),
-     "travel", ["self_i", "act_want", "link_to", "other_world"]),
+     "travel", ["self_i", "act_want", "other_world"]),
     (("parent", "mother", "mom", "mum", "father", "dad", "family", "childhood",
       "grew up", "home", "sister", "brother", "divorce"),
-     "family", ["self_remember", "other_us", "link_and", "time_before"]),
+     "family", ["self_remember", "family", "time_before"]),
     (("him", "boyfriend", "rohan", "relationship", "breakup", "fight", "love", " r ",
       "partner", "together"),
-     "relationship", ["other_him", "emo_sad", "link_but", "truth_no"]),
+     "relationship", ["other_him", "emo_sad", "truth_no"]),
 ]
 
 GREETING = (("hello", "hi ", "hey", "are you", "can you hear", "okay", "there"),
@@ -29,6 +29,7 @@ GREETING = (("hello", "hi ", "hey", "are you", "can you hear", "okay", "there"),
 MOOD = [
     (("happy", "good", "glad", "joy", "smile", "laugh"), ["emo_happy"]),
     (("sad", "sorry", "hurt", "cry", "miss", "grief"), ["emo_sad"]),
+    (("tired", "exhausted", "weary", "rest", "sleep", "worn"), ["emo_tired"]),
     (("remember", "memory", "past", "before", "used to"), ["self_remember", "time_before"]),
     (("afraid", "scared", "fear", "worried", "alone"), ["emo_afraid"]),
     (("yes", "yeah", "right", "true"), ["truth_yes"]),
@@ -71,12 +72,12 @@ def infer(request):
             candidates += tones
 
     if not candidates:  # in-character default: she reaches, she feels
-        candidates = ["self_i", "self_feel", "other_you", "truth_pause"]
+        candidates = ["self_i", "self_feel", "other_you"]
 
     # constrain to active tones; keep self-reference grounding when possible
     tones = [t for t in _dedupe(candidates) if t in active]
     if not tones:
-        tones = [t for t in ("self_feel", "self_i", "truth_pause") if t in active]
+        tones = [t for t in ("self_feel", "self_i") if t in active]
     tones = tones[:5]
 
     emotion = "hope" if request.get("act", 1) == 1 else (

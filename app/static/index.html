@@ -105,7 +105,7 @@
   <header class="flex items-baseline justify-between px-7 py-4 border-b border-white/[.06]">
     <span class="font-serif text-[26px] tracking-[.18em] font-medium text-warm transition-colors duration-[2500ms]">FORGOTTEN LILY</span>
     <span class="text-[11px] tracking-[.15em] text-muted">CASE <b class="text-paper font-medium">LA-0419</b> &nbsp;·&nbsp; SUBJECT <b class="text-paper font-medium">LILY ANNE</b> &nbsp;·&nbsp; ACT <b class="text-paper font-medium" id="actNum">I</b></span>
-    <button id="lexBtn" class="text-[11px] tracking-[.12em] text-muted border border-chipedge px-3 py-1.5 rounded-sm bg-transparent transition hover:text-paper hover:border-accent">LEXICON <span id="lexCount">0/27</span></button>
+    <button id="lexBtn" class="text-[11px] tracking-[.12em] text-muted border border-chipedge px-3 py-1.5 rounded-sm bg-transparent transition hover:text-paper hover:border-accent">LEXICON <span id="lexCount">0/25</span></button>
   </header>
 
   <div class="grid grid-cols-[minmax(280px,1fr)_1.6fr]" style="height:calc(100% - 67px)">
@@ -194,15 +194,13 @@ const guesses = {};   // tone_id -> {guess, confidence}, the player's own decodi
 // the *kind* of a glyph (Self/Emotion/Truth…) for free, and decodes the exact
 // meaning themselves. Narrows a 24-way guess to ~4-way without giving the answer.
 const CATS = {
-  A: { label: 'Self',    color: '#d8a36b' },
-  B: { label: 'Other',   color: '#6f9fb0' },
-  C: { label: 'Time',    color: '#a98fc0' },
-  D: { label: 'Emotion', color: '#cf7b86' },
-  E: { label: 'Action',  color: '#7fae7f' },
-  F: { label: 'Truth',   color: '#b8b09c' },
-  G: { label: 'Link',    color: '#c9a66b' },
+  A: { label: 'People & Things', color: '#d8a36b' },
+  B: { label: 'Action',         color: '#7fae7f' },
+  C: { label: 'Feeling',        color: '#cf7b86' },
+  D: { label: 'Time',           color: '#a98fc0' },
+  E: { label: 'Answer',         color: '#b8b09c' },
 };
-let TOTAL_TONES = 27;   // overwritten by the first turn's total_tones
+let TOTAL_TONES = 25;   // overwritten by the first turn's total_tones
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 const seenTones = new Set();   // tone ids the player has encountered this session (for "NEW")
@@ -286,6 +284,28 @@ async function start() {
   catch (e) { console.error('could not start a new game', e); }
 }
 function setAct(act) { document.body.dataset.act = act; $('#actNum').textContent = ROMAN[act] || act; }
+
+// Named acts (the arc: meeting her → her memories surfacing → release). Shown as a
+// brief, translucent title card when the act turns over (not on the opening act).
+const ACT_NAMES = { 1: 'Meeting', 2: 'Remembering', 3: 'Letting Go' };
+const ACT_SUB   = { 1: 'Someone has come to listen.',
+                    2: 'The past begins to surface.',
+                    3: 'Only what still matters now.' };
+function showActCard(act) {
+  const name = ACT_NAMES[act];
+  if (!name) return;
+  const ov = document.createElement('div');
+  ov.className = 'fixed inset-0 z-[70] flex items-center justify-center bg-bg/70 backdrop-blur-sm opacity-0 transition-opacity duration-[900ms] pointer-events-none';
+  ov.innerHTML = `<div class="text-center px-8">
+      <div class="font-mono text-warm tracking-[.42em] text-[12px] mb-4">ACT ${ROMAN[act] || act}</div>
+      <div class="font-serif text-paper text-[46px] leading-none mb-4">${esc(name)}</div>
+      <div class="font-serif italic text-muted text-[17px]">${esc(ACT_SUB[act] || '')}</div>
+    </div>`;
+  document.body.appendChild(ov);
+  requestAnimationFrame(() => ov.classList.remove('opacity-0'));
+  setTimeout(() => ov.classList.add('opacity-0'), 2800);
+  setTimeout(() => ov.remove(), 3800);
+}
 
 // --- melodic tone playback (the world goes quiet for her; PLAN 6.5) ----------
 // Each glyph is a note on one shared scale (see tones/synth.py). We trigger the
@@ -578,14 +598,26 @@ function showCaseBrief() {
   host.prepend(el);
 }
 // Shown while waiting for her response — pulsing dots in Lily's voice.
+// While she gathers a reply: an evocative line (with a faint pulse) instead of bare
+// dots — it reads as her listening/feeling rather than a spinner.
+const THINKING_LINES = [
+  'Lily gazes into the distance…',
+  'Lily turns your words over…',
+  'Lily reaches for a feeling…',
+  'Lily listens, somewhere far away…',
+  'Lily searches for the right sound…',
+  'Something crosses her face…',
+  'Lily lets your question settle…',
+];
+let _thinkIdx = 0;
 function addThinking() {
   const m = document.createElement('div');
   m.className = 'thinking self-start max-w-[85%]';
+  const line = THINKING_LINES[_thinkIdx++ % THINKING_LINES.length];
   m.innerHTML = `<div class="text-[10px] tracking-[.2em] text-accent mb-1.5">LILY</div>
-    <div class="flex items-center gap-1.5 h-10 px-1">
-      <span class="dot w-2 h-2 rounded-full bg-accent"></span>
-      <span class="dot w-2 h-2 rounded-full bg-accent"></span>
-      <span class="dot w-2 h-2 rounded-full bg-accent"></span>
+    <div class="thinking-line flex items-center gap-2 h-10 px-1 font-serif italic text-muted text-[16px]">
+      <span>${esc(line)}</span>
+      <span class="dot inline-block w-1.5 h-1.5 rounded-full bg-accent"></span>
     </div>`;
   $('#log').appendChild(m); scrollLog();
   return m;
@@ -688,7 +720,7 @@ async function send() {
     const els = addLily(resp);
     await playTones(els);
     addNotes(resp.notes_unlocked);
-    if (resp.act_changed) setAct(resp.act);
+    if (resp.act_changed) { setAct(resp.act); showActCard(resp.act); }
     if (resp.total_tones) TOTAL_TONES = resp.total_tones;
     setEmpathy(resp.empathy, resp.empathy_max);
     $('#lexCount').textContent = `${resp.tones_seen}/${TOTAL_TONES}`;
