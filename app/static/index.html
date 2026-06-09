@@ -261,10 +261,21 @@ async function api(path, opts) {
   return r.json();
 }
 
+// Create the session, idempotently. Deduped so concurrent callers share one request,
+// and retryable: a failed /api/new clears the latch so the next call tries again.
+let _newGame = null;
+async function ensureSession() {
+  if (session) return session;
+  if (!_newGame) {
+    _newGame = api('/api/new', { method: 'POST' })
+      .then(d => { session = d.session_id; setAct(d.act); return session; })
+      .catch(err => { _newGame = null; throw err; });   // allow a retry
+  }
+  return _newGame;
+}
 async function start() {
-  const d = await api('/api/new', {method:'POST'});
-  session = d.session_id;
-  setAct(d.act);
+  try { await ensureSession(); }
+  catch (e) { console.error('could not start a new game', e); }
 }
 function setAct(act) { document.body.dataset.act = act; $('#actNum').textContent = ROMAN[act] || act; }
 
@@ -592,6 +603,9 @@ async function send() {
   addDetective(text); ta.value=''; updateCount();
   const thinking = addThinking();
   try {
+    // make sure a session exists before the turn — guards the first-load race and a
+    // cold-start hiccup where /api/new hadn't resolved (was sending session_id:null).
+    if (!session) await ensureSession();
     const resp = await api('/api/turn', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({session_id:session, message:text})
