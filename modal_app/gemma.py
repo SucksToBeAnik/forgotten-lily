@@ -1,9 +1,11 @@
 """Modal GPU inference — Lily's reasoning model (Phase 3).
 
-Runs Gemma 4 E4B (GGUF Q4_K_M) via llama-cpp-python on a T4, behind the contract
-in docs/CONTRACT.md. The model speaks AS Lily: given the detective's line and the
-tones active this act, it returns a short JSON object choosing 1-7 tone ids, an
-optional topic_signal, and an internal_emotion tag.
+Runs Qwen2.5-7B-Instruct (GGUF Q4_K_M) via llama-cpp-python on a T4, behind the
+contract in docs/CONTRACT.md. (Upgraded from Gemma 4 E4B for sharper tone
+selection / JSON-menu discipline — the swap is just the repo/file below since the
+llama.cpp path is model-agnostic.) The model speaks AS Lily: given the detective's
+line and the tones active this act, it returns a short JSON object choosing 1-7
+tone ids, an optional topic_signal, and an internal_emotion tag.
 
 Deploy:   .venv/bin/modal deploy modal_app/gemma.py
 Smoke:    .venv/bin/modal run modal_app/gemma.py
@@ -15,8 +17,8 @@ import os
 import modal
 
 APP_NAME = "forgotten-lily"
-MODEL_REPO = "ggml-org/gemma-4-E4B-it-GGUF"
-MODEL_FILE = "gemma-4-E4B-it-Q4_K_M.gguf"
+MODEL_REPO = "bartowski/Qwen2.5-7B-Instruct-GGUF"
+MODEL_FILE = "Qwen2.5-7B-Instruct-Q4_K_M.gguf"
 MODEL_DIR = "/models"
 SIGNALS = {"music", "university", "relationship", "family", "travel"}
 
@@ -65,7 +67,9 @@ CHARACTER = (
     "the whole world — and most of all to stand at Mount Fuji at sunrise with BOTH "
     "your parents, who divorced when you were eleven, together for once, after you "
     "graduate. You grew up shuttled between their two homes and learned to go quiet "
-    "when things got hard. There was someone, R; that ended gently and recently — it "
+    "when things got hard; you poured yourself into your studies — learning was a "
+    "refuge you genuinely loved — and you never had many close friends, though you "
+    "quietly longed for them. There was someone, R; that ended gently and recently — it "
     "weighs on you, but it is not the center of you. The center is everything you "
     "still want and have not done yet. The last evening hurts to reach toward — a "
     "quiet goodbye, your parents' voices rising in the hall, the dark, a road — and "

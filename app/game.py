@@ -33,10 +33,11 @@ GRAMMAR_ORDER = {
     "truth_yes": 0, "truth_no": 0,                                          # answer first
     "self_i": 1,                                                            # subject
     "self_feel": 2, "self_remember": 2, "self_forget": 2,                   # inner verbs
-    "emo_love": 3, "emo_happy": 3, "emo_sad": 3, "emo_afraid": 3, "emo_tired": 3,  # emotion
+    "emo_love": 3, "emo_happy": 3, "emo_sad": 3, "emo_afraid": 3,
+    "emo_tired": 3, "emo_lonely": 3,                                        # emotion
     "act_want": 4, "act_go": 4, "act_stay": 4, "act_fall": 4,               # action
     "other_you": 5, "other_him": 5, "other_us": 5, "other_world": 5,        # people
-    "family": 5, "music": 5,                                                # & things
+    "family": 5, "friend": 5, "music": 5, "study": 5,                       # & things
     "time_now": 6, "time_before": 6, "time_after": 6,                       # time
     "truth_nothing": 8,                                                     # the end
 }
@@ -59,6 +60,7 @@ ACT_BASELINE_MOOD = {1: "warm", 2: "wistful", 3: "releasing"}
 EMOTION_TONE_MOOD = {
     "emo_happy": "light", "emo_sad": "heavy",
     "emo_afraid": "afraid", "emo_love": "tender", "emo_tired": "weary",
+    "emo_lonely": "lonely",
 }
 
 

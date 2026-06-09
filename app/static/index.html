@@ -105,7 +105,7 @@
   <header class="flex items-baseline justify-between px-7 py-4 border-b border-white/[.06]">
     <span class="font-serif text-[26px] tracking-[.18em] font-medium text-warm transition-colors duration-[2500ms]">FORGOTTEN LILY</span>
     <span class="text-[11px] tracking-[.15em] text-muted">CASE <b class="text-paper font-medium">LA-0419</b> &nbsp;·&nbsp; SUBJECT <b class="text-paper font-medium">LILY ANNE</b> &nbsp;·&nbsp; ACT <b class="text-paper font-medium" id="actNum">I</b></span>
-    <button id="lexBtn" class="text-[11px] tracking-[.12em] text-muted border border-chipedge px-3 py-1.5 rounded-sm bg-transparent transition hover:text-paper hover:border-accent">LEXICON <span id="lexCount">0/25</span></button>
+    <button id="lexBtn" class="text-[11px] tracking-[.12em] text-muted border border-chipedge px-3 py-1.5 rounded-sm bg-transparent transition hover:text-paper hover:border-accent">LEXICON <span id="lexCount">0/28</span></button>
   </header>
 
   <div class="grid grid-cols-[minmax(280px,1fr)_1.6fr]" style="height:calc(100% - 67px)">
@@ -194,13 +194,14 @@ const guesses = {};   // tone_id -> {guess, confidence}, the player's own decodi
 // the *kind* of a glyph (Self/Emotion/Truth…) for free, and decodes the exact
 // meaning themselves. Narrows a 24-way guess to ~4-way without giving the answer.
 const CATS = {
-  A: { label: 'People & Things', color: '#d8a36b' },
-  B: { label: 'Action',         color: '#7fae7f' },
-  C: { label: 'Feeling',        color: '#cf7b86' },
-  D: { label: 'Time',           color: '#a98fc0' },
-  E: { label: 'Answer',         color: '#b8b09c' },
+  A: { label: 'People',  color: '#d8a36b' },
+  F: { label: 'Things',  color: '#5ba6a0' },
+  B: { label: 'Action',  color: '#7fae7f' },
+  C: { label: 'Feeling', color: '#cf7b86' },
+  D: { label: 'Time',    color: '#a98fc0' },
+  E: { label: 'Answer',  color: '#b8b09c' },
 };
-let TOTAL_TONES = 25;   // overwritten by the first turn's total_tones
+let TOTAL_TONES = 28;   // overwritten by the first turn's total_tones
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 const seenTones = new Set();   // tone ids the player has encountered this session (for "NEW")
