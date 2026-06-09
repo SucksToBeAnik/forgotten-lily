@@ -7,7 +7,7 @@ sdk: gradio
 sdk_version: 4.44.0
 app_file: app.py
 pinned: false
-short_description: A mystery told in tones. Learn her language. Find out what happened.
+short_description: A mystery told in tones. Learn her language.
 ---
 
 # Forgotten Lily
