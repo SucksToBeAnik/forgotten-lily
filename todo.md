@@ -180,13 +180,20 @@ its app name distinct from Gemma's `forgotten-lily` or deploys clobber each othe
   cold mono). (Music EQ per act dropped — no ambient music anymore.)
   - DoD: visible color drift across acts. (Palette vars exist on `body[data-act]`; verify the
     transition reads clearly Act I→II→III.)
-- [ ] **7.3** Ending sequence: final hand-authored tone sequence (now 9 tones, in
-  server.py `/api/turn` finale branch — "I wanted to reach the world / and us / love /
-  let go / the end") → 5s fade to white → **Kokoro TTS** line — REFRAMED to the dream,
-  e.g. *"I just wanted to see the world — all three of us, watching the sun come up."*
-  (no longer the R line) → 8s silence → memorial screen (name, dates, player's full
-  lexicon). No score/replay.
-  - DoD: full ending plays start to finish as scripted (PLAN §4.5).
+- [x] **7.3** Ending sequence — **DONE & deployed.** N10 (the reveal) triggers
+  `runEnding()` in index.html: a beat to read the report → the 9-tone hand-authored
+  finale (server `/api/turn` finale branch; now bypasses act-gating/cap/reorder in
+  game.py so it always plays in full) → 5s fade to white as the ambient bed fades out →
+  her one spoken line, **pre-rendered with Kokoro** (`modal_app/render_voice.py`, voice
+  `af_heart`, one-off `modal run`; output committed as `app/static/audio/lily_final.wav`
+  via **Git-LFS** since it can't be regenerated on the Space) → silence → memorial (name,
+  "nineteen", the dream line, and the full set of tones the player decoded). No replay.
+  Preview without a full playthrough: open the Space, BEGIN, then run `runEnding()` in
+  the console (works from any state now).
+  - DoD: full ending plays start to finish as scripted (PLAN §4.5). ✓
+  - **Open follow-up:** confirm the ending is actually REACHABLE in normal play — N10
+    needs all **27** tones *seen* (incl. the 3 always-on connectives + every Act III
+    tone). If the model rarely emits some, the finale never fires. See the N10 gate item.
 
 ## Phase 8 — Prize Extras
 - [ ] **8.1** **MiniCPM-o 4.5** optional audio input (mic button) on a cold-start Modal endpoint → transcribe/interpret to a player turn (OpenBMB badge).
