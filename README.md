@@ -44,6 +44,7 @@ resolve, so does what happened to her.
 - **Watch the demo:** https://youtu.be/kTx6NHeEJ9E
 - **Launch post (the story behind it):** [LinkedIn](https://www.linkedin.com/posts/al-jami-islam-anik-485758285_buildsmallhackathon-huggingface-gradio-ugcPost-7470224344246493184-1BPC/)
 - **Play it:** [open the Space](https://huggingface.co/spaces/build-small-hackathon/forgotten-lily) · headphones recommended.
+- **Field notes (the dataset):** [forgotten-lily-traces](https://huggingface.co/datasets/build-small-hackathon/forgotten-lily-traces) — anonymous traces of questions asked and the tones Lily answered with, collected as people play.
 
 ---
 
