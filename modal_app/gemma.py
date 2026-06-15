@@ -153,6 +153,14 @@ class Lily:
         self.llm = Llama(model_path=path, n_gpu_layers=-1, n_ctx=4096, verbose=False)
 
     @modal.method()
+    def warm(self) -> bool:
+        """No-op used to pre-boot a container ahead of the first real turn. Calling
+        any method runs @modal.enter (loading the model) first, so a fire-and-forget
+        warm() from the server on page load hides the cold start behind the player's
+        intro-reading / typing time. Returns once the model is resident."""
+        return True
+
+    @modal.method()
     def infer(self, request: dict) -> dict:
         active_ids = request.get("active_tones", [])
         active = [self.tones[i] for i in active_ids if i in self.tones]

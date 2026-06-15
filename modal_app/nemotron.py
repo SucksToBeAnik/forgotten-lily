@@ -124,6 +124,13 @@ class Nemotron:
         return self.tok.decode(new, skip_special_tokens=True).strip().lower()
 
     @modal.method()
+    def warm(self) -> bool:
+        """No-op to pre-boot a container (and load the model via @modal.enter) ahead
+        of the first guess/moderation call. Fired fire-and-forget from the server on
+        page load so the judge isn't cold the first time the player decodes a glyph."""
+        return True
+
+    @modal.method()
     def score_guess(self, tone_id: str, guess: str, contexts: list) -> str:
         """Rate a player's lexicon guess against the tone's true meaning, by sense.
         `contexts` (the detective lines where the tone appeared) are passed for

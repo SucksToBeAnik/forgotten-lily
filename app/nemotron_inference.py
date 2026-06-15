@@ -14,6 +14,12 @@ def _get():
     return _nemotron
 
 
+def warm():
+    """Fire-and-forget: pre-boot a Nemotron container + load the model so the first
+    guess/moderation call isn't cold. Non-blocking (spawn returns immediately)."""
+    _get().warm.spawn()
+
+
 def score_guess(tone_id: str, guess: str, contexts: list) -> str:
     """Call Nemotron to rate a lexicon guess. Returns 'red'|'amber'|'teal'|'green'."""
     print(f"\033[36m[nemotron →]\033[0m score tone={tone_id!r} guess={guess!r:.40} ctx={len(contexts)}")

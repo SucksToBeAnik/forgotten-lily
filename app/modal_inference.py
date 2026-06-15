@@ -17,6 +17,13 @@ def _get():
     return _lily
 
 
+def warm():
+    """Fire-and-forget: spin up a Lily container and load the model so the first
+    real turn doesn't pay the cold start. Non-blocking — spawn() enqueues the call
+    and returns immediately; the container boots + loads in the background."""
+    _get().warm.spawn()
+
+
 def infer(request):
     print("\n\033[36m[modal →]\033[0m turn=%s act=%s msg=%r"
           % (request.get("turn"), request.get("act"), request.get("message", "")[:120]))

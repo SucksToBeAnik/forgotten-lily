@@ -62,6 +62,20 @@ def _moderate(message: str) -> str:
         return "normal"
 
 
+def _warm_models() -> None:
+    """Fire-and-forget warmup of the GPU models when a session starts (page load),
+    so the first turn and first guess don't pay a Modal cold start — the boot/load
+    overlaps the player reading the intro and typing. Best-effort and independent:
+    a failure to warm one model never blocks the response or the other warmup, and
+    warming is purely an optimization (a turn still works cold)."""
+    for name, mod in (("lily", "app.modal_inference"),
+                      ("nemotron", "app.nemotron_inference")):
+        try:
+            __import__(mod, fromlist=["warm"]).warm()
+        except Exception as exc:  # pragma: no cover - resilience guard
+            print(f"\033[33m[warm] {name} skipped:\033[0m {exc}")
+
+
 class TurnIn(BaseModel):
     session_id: str
     message: str = ""
@@ -78,6 +92,8 @@ class GuessIn(BaseModel):
 def new_game():
     st = game.new_session()
     SESSIONS[st["session_id"]] = st
+    if not USE_MOCK:  # live only: pre-warm the GPU models behind the player's think-time
+        _warm_models()
     return {"session_id": st["session_id"], "act": st["act"]}
 
 
