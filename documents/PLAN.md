@@ -69,7 +69,7 @@ The player opens the game and sees a sparse, warm screen. A case file header. A 
 
 Below that, a single line of detective's notes typed out slowly, as if being written in real time:
 
-> *She can't speak. The doctors say it may be trauma-related. She responds to presence. She makes sounds. I've been asked to try.*
+> *Lily has forgotten how to speak. She only speaks in melodies now. Keep conversing with Lily to understand what really happened to her.*
 
 The first conversation begins. The UI is warm — muted cream, soft amber. The room feels like late afternoon light through hospital blinds. A gentle ambient piano plays, barely audible.
 
