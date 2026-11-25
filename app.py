@@ -6,7 +6,9 @@ UI badge: a custom Gradio UI, unrecognizable from default), we run the whole
 thing on Gradio: a gr.Blocks app is mounted onto the same server via
 gr.mount_gradio_app, so Gradio is the framework actually serving the experience.
 
-Local:   .venv/bin/python app.py         (or: uvicorn app:app --port 7860)
+Local:   .venv/bin/python app.py         (not `uvicorn app:app` — that resolves
+         to the app/ package, not this file)
+Render:  see render.yaml (same entry point, port from $PORT)
 Game UI:  http://localhost:7860/
 Gradio:   http://localhost:7860/engine   (mounted Blocks — control/diagnostics)
 """
@@ -50,4 +52,5 @@ app = gr.mount_gradio_app(app, demo, path="/engine")
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=7860)
+    # HF Spaces expects 7860; Render (and most PaaS hosts) inject $PORT.
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 7860)))

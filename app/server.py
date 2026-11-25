@@ -173,6 +173,13 @@ def guess(body: GuessIn):
     return result
 
 
+@app.get("/healthz")
+def healthz():
+    """Cheap liveness probe for keep-alive pingers (Render free tier sleeps after
+    15 idle min). Deliberately touches nothing: no session, no Modal warmup."""
+    return {"ok": True}
+
+
 @app.get("/")
 def index():
     return FileResponse(STATIC / "index.html")

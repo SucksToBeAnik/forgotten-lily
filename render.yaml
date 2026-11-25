@@ -1,0 +1,29 @@
+# Render Blueprint — hosts the same app as the HF Space (FastAPI + mounted Gradio).
+# The GPU models stay on Modal; this service is only the CPU web server + Modal client.
+#
+# Deploy: Render dashboard -> New -> Blueprint -> pick this repo. Render will prompt
+# for the `sync: false` secrets below (MODAL_TOKEN_ID / MODAL_TOKEN_SECRET are
+# required for live play; HF_TOKEN + TRACE_DATASET_REPO are optional trace logging).
+services:
+  - type: web
+    name: forgotten-lily
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    # Tone + ambient WAVs are generated on boot by app.py if missing (~3s).
+    startCommand: python app.py
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8          # match the Space's python_version
+      - key: USE_MOCK
+        value: "0"             # "1" = rule-based mock, no Modal calls / no GPU cost
+      - key: MODAL_TOKEN_ID
+        sync: false
+      - key: MODAL_TOKEN_SECRET
+        sync: false
+      - key: HF_TOKEN
+        sync: false
+      - key: TRACE_DATASET_REPO
+        sync: false
